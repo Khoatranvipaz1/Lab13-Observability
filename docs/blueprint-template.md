@@ -55,7 +55,7 @@
 
 ### Khoatranvipaz1 (TVKhoa)
 - [TASKS_COMPLETED]: Implemented correlation ID propagation, structured log enrichment, recursive PII redaction, Langfuse-compatible tracing, error-rate metrics, separate audit logs, integration tests, the six-panel dashboard, and reproducible technical evidence.
-- [EVIDENCE_LINK]: https://github.com/Khoatranvipaz1/Lab13-Observability/commit/29fe1ae05177c64c3b0fb4ffb8caf6f9e4538fda
+- [EVIDENCE_LINK]: https://github.com/Khoatranvipaz1/Lab13-Observability/commit/7ce531d
 - [INDIVIDUAL_REPORT]: docs/individual-report-TVKhoa.md
 
 ---

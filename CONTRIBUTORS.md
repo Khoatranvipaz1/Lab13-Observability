@@ -17,6 +17,7 @@
 - Primary commits:
   - `29fe1ae` - core observability implementation
   - `a313ef4` - dashboard, evidence, reports, and final lab packaging
+  - `7ce531d` - independent audit fixes, quality/cost eval, alerts, and trace hardening
 - Detailed individual report: `docs/individual-report-TVKhoa.md`
 - Quality and cost report: `docs/evidence/eval-cost-report.md`
 

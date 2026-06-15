@@ -4,8 +4,8 @@
 
 - Git identity: `Khoatranvipaz1`
 - Branch: `TVKhoa`
-- Main implementation commit:
-  [29fe1ae](https://github.com/Khoatranvipaz1/Lab13-Observability/commit/29fe1ae05177c64c3b0fb4ffb8caf6f9e4538fda)
+- Main audited implementation commit:
+  [7ce531d](https://github.com/Khoatranvipaz1/Lab13-Observability/commit/7ce531d)
 - Repository: [Lab13-Observability](https://github.com/Khoatranvipaz1/Lab13-Observability)
 - Validation result: `100/100`
 - Automated tests: `14 passed`
