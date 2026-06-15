@@ -31,7 +31,7 @@ This template is intentionally incomplete. Teams are expected to finish TODOs du
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env
+# Update configuration values in .env
 uvicorn app.main:app --reload
 ```
 

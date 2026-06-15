@@ -4,21 +4,36 @@ import os
 from typing import Any
 
 try:
-    from langfuse.decorators import observe, langfuse_context
-except Exception:  # pragma: no cover
-    def observe(*args: Any, **kwargs: Any):
-        def decorator(func):
-            return func
-        return decorator
+    from langfuse import get_client, observe
 
-    class _DummyContext:
+    class _LangfuseV3Context:
         def update_current_trace(self, **kwargs: Any) -> None:
-            return None
+            get_client().update_current_trace(**kwargs)
 
         def update_current_observation(self, **kwargs: Any) -> None:
-            return None
+            client = get_client()
+            update_span = getattr(client, "update_current_span", None)
+            if update_span:
+                update_span(**kwargs)
 
-    langfuse_context = _DummyContext()
+    langfuse_context = _LangfuseV3Context()
+except Exception:  # pragma: no cover
+    try:
+        from langfuse.decorators import langfuse_context, observe
+    except Exception:
+        def observe(*args: Any, **kwargs: Any):
+            def decorator(func):
+                return func
+            return decorator
+
+        class _DummyContext:
+            def update_current_trace(self, **kwargs: Any) -> None:
+                return None
+
+            def update_current_observation(self, **kwargs: Any) -> None:
+                return None
+
+        langfuse_context = _DummyContext()
 
 
 def tracing_enabled() -> bool:
