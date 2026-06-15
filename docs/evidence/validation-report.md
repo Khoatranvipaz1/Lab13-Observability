@@ -4,7 +4,7 @@ Generated on June 15, 2026.
 
 ## Automated Tests
 
-- Result: `15 passed`
+- Result: `19 passed`
 - Test areas:
   - correlation ID propagation
   - response timing headers
@@ -14,6 +14,7 @@ Generated on June 15, 2026.
   - percentile and error-rate metrics
   - Langfuse SDK v4 helpers and trace propagation
   - expected-answer quality cases
+  - malformed JSONL rejection and strict schema fields
 
 ## Quality and Cost Eval
 
@@ -29,10 +30,11 @@ Generated on June 15, 2026.
 
 ## Log Validator
 
-- Total valid log records: `158`
+- Total log records analyzed: `260`
+- Malformed JSON records: `0`
 - Records failing JSON Schema: `0`
 - Records missing enrichment: `0`
-- Unique correlation IDs: `75`
+- Unique correlation IDs: `125`
 - Potential PII leaks: `0`
 - Estimated score: `100/100`
 

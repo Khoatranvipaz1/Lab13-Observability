@@ -15,7 +15,7 @@
 
 | Check | Result |
 |---|---:|
-| Automated tests | 15 passed |
+| Automated tests | 19 passed |
 | Log validator | 100/100 |
 | JSON Schema failures | 0 |
 | PII leaks | 0 |

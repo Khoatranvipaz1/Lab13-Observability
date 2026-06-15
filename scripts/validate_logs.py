@@ -14,28 +14,44 @@ LOG_PATH = Path("data/logs.jsonl")
 SCHEMA_PATH = Path("config/logging_schema.json")
 ENRICHMENT_FIELDS = {"user_id_hash", "session_id", "feature", "model"}
 
+
 def main() -> None:
     if not LOG_PATH.exists():
         print(f"Error: {LOG_PATH} not found. Run the app and send some requests first.")
         sys.exit(1)
 
     records = []
-    for line in LOG_PATH.read_text(encoding="utf-8").splitlines():
+    malformed_records = 0
+    pii_hits = []
+    nonempty_lines = 0
+    for line_number, line in enumerate(
+        LOG_PATH.read_text(encoding="utf-8").splitlines(),
+        start=1,
+    ):
         if not line.strip():
             continue
+        nonempty_lines += 1
         try:
             records.append(json.loads(line))
         except json.JSONDecodeError:
+            malformed_records += 1
+            pii_types = detect_pii(line)
+            if pii_types:
+                pii_hits.append(
+                    {
+                        "event": "malformed_json",
+                        "line": line_number,
+                        "types": pii_types,
+                    }
+                )
             continue
 
-    if not records:
-        print("Error: No valid JSON logs found in data/logs.jsonl")
+    if not nonempty_lines:
+        print("Error: No log records found in data/logs.jsonl")
         sys.exit(1)
 
-    total = len(records)
     schema_errors = 0
     missing_enrichment = 0
-    pii_hits = []
     correlation_ids = set()
     validator = Draft202012Validator(
         json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
@@ -67,7 +83,8 @@ def main() -> None:
             correlation_ids.add(cid)
 
     print("--- Lab Verification Results ---")
-    print(f"Total log records analyzed: {total}")
+    print(f"Total log records analyzed: {nonempty_lines}")
+    print(f"Malformed JSON records: {malformed_records}")
     print(f"Records failing JSON Schema: {schema_errors}")
     print(f"Records with missing enrichment (context): {missing_enrichment}")
     print(f"Unique correlation IDs found: {len(correlation_ids)}")
@@ -77,11 +94,11 @@ def main() -> None:
     
     print("\n--- Grading Scorecard (Estimates) ---")
     score = 100
-    if schema_errors > 0:
+    if malformed_records > 0 or schema_errors > 0:
         score -= 30
-        print("- [FAILED] JSON Schema validation")
+        print("- [FAILED] JSONL and schema validation")
     else:
-        print("+ [PASSED] Basic JSON schema")
+        print("+ [PASSED] JSONL and JSON schema")
 
     if len(correlation_ids) < 2:
         score -= 20

@@ -15,7 +15,7 @@ analysis.
 
 | Check | Result |
 |---|---:|
-| Automated tests | 15 passed |
+| Automated tests | 19 passed |
 | Log validator | 100/100 |
 | JSON Schema failures | 0 |
 | PII leaks detected | 0 |
@@ -120,7 +120,7 @@ python scripts/export_evidence.py
 
 Expected results:
 
-- tests: `15 passed`
+- tests: `19 passed`
 - eval: `7/7`, `100%`
 - alert evaluation: `PASS`
 - log validation: `100/100`

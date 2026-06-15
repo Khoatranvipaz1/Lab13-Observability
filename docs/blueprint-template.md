@@ -21,7 +21,7 @@ evidence are recorded in `CONTRIBUTORS.md`.
 - [PII_LEAKS_FOUND]: 0
 - [QUALITY_EVAL_PASS_RATE]: 100% (7/7)
 - [EVAL_COST_USD]: $0.002991 (simulated)
-- [AUTOMATED_TESTS]: 15 passed
+- [AUTOMATED_TESTS]: 19 passed
 - [ALERT_EVALUATION]: PASS (4/4 scenarios)
 
 The final Langfuse evidence shows 34 root traces and 124 observations,
@@ -200,7 +200,7 @@ diagnostic detail.
 Completed:
 
 - local implementation
-- 15 automated tests
+- 19 automated tests
 - validator score 100/100
 - zero detected PII leaks
 - six-panel dashboard
