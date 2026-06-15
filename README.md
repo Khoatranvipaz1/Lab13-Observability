@@ -1,129 +1,220 @@
 # Day 13 Observability Lab
 
-Completed hands-on lab implementation for Monitoring, Logging, and
-Observability.
+Completed FastAPI observability lab covering structured logging, PII safety,
+metrics, tracing, alerts, incident response, quality evaluation, and cost
+analysis.
 
-## What students will build
+## Current Results
 
-A small FastAPI "agent" instrumented with:
-- structured JSON logging
-- correlation ID propagation
-- PII scrubbing
-- Langfuse tracing
-- minimal metrics aggregation
-- SLOs, alerts, and a blueprint report
+| Check | Result |
+|---|---:|
+| Automated tests | 14 passed |
+| Log validator | 100/100 |
+| JSON Schema failures | 0 |
+| PII leaks detected | 0 |
+| Quality and safety eval | 7/7 passed |
+| Simulated eval cost | $0.002991 |
+| Estimated cost reduction | 79.09% |
+| Alert scenarios | 4/4 passed |
+| Dashboard panels | 6/6 |
+| Live Langfuse traces | 0, credentials required |
 
-The local implementation is complete and validated. Live Langfuse evidence
-requires credentials in `.env`.
+The local implementation is complete. The only unmet external rubric item is
+the requirement for at least 10 live Langfuse traces and a waterfall
+screenshot. The local `.env` currently has empty Langfuse keys.
 
-## Suggested lab flow (Gapped Template)
+## Features
 
-1. **Run the starter app**: Observe that logs are basic and correlation IDs are missing.
-2. **Implement Correlation IDs**: Fix `app/middleware.py` so every request has a unique `x-request-id`.
-3. **Enrich Logs**: Update `app/main.py` to bind user, session, and feature context to every log.
-4. **Sanitize Data**: Implement the PII scrubber in `app/logging_config.py`.
-5. **Verify with Script**: Run `python scripts/validate_logs.py` to check your progress.
-6. **Tracing**: Send 10-20 requests and verify traces in Langfuse (ensure `observe` decorator is used).
-7. **Dashboards**: Build your 6-panel dashboard from exported metrics.
-8. **Alerting**: Configure alert rules in `config/alert_rules.yaml` and test them.
+- JSONL structured logging with correlation IDs
+- request context enrichment for user, session, feature, model, and environment
+- recursive PII redaction for email, phone, CCCD, card, passport, and address
+- separate audit log for incident-control actions
+- rolling one-hour latency, traffic, error, token, cost, and quality metrics
+- rolling 24-hour cost budget
+- six-panel dashboard with SLO thresholds and 20-second refresh
+- executable latency, error-rate, and cost alert evaluation
+- secured local development incident controls
+- Langfuse parent and child observations with automatic raw capture disabled
+- deterministic quality/safety evaluation and simulated cost comparison
+- JSON Schema-based log validation
 
-## Quick start
+## Architecture
 
-```bash
+```text
+HTTP request
+  -> CorrelationIdMiddleware
+  -> /chat context enrichment
+  -> LabAgent.run observation
+       -> retrieve child observation
+       -> FakeLLM.generate child observation
+  -> rolling metrics
+  -> scrubbed JSONL logs
+  -> response with request ID and latency headers
+```
+
+The tracing path hashes user and session identifiers and sends only sanitized
+query/answer previews. Raw trace input and output capture is disabled.
+
+## Setup
+
+Python 3.14 is supported by the pinned dependencies in this repository.
+
+```powershell
 python -m venv .venv
-source .venv/bin/activate
-# Windows PowerShell: .\.venv\Scripts\Activate.ps1
+.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-# Update configuration values in .env
-# Keep INCIDENT_ADMIN_TOKEN private; incident endpoints are local/dev only.
-uvicorn app.main:app --reload
 ```
 
-Open `http://127.0.0.1:8000/dashboard` for the six-panel dashboard.
-Open `http://127.0.0.1:8000/alerts/status` for evaluated alert state.
+The application reads configuration only from `.env`. Required local values:
 
-## Tooling
+```dotenv
+APP_ENV=dev
+APP_NAME=day13-observability-lab
+LOG_LEVEL=INFO
+LOG_PATH=data/logs.jsonl
+AUDIT_LOG_PATH=data/audit.jsonl
+LANGFUSE_PUBLIC_KEY=
+LANGFUSE_SECRET_KEY=
+LANGFUSE_HOST=https://cloud.langfuse.com
+INCIDENT_ADMIN_TOKEN=replace-with-a-private-local-token
+HOURLY_COST_BASELINE_USD=0.005
+```
 
-```bash
-# Generate requests (use --concurrency 5 to test parallel bottlenecks)
-python scripts/load_test.py --concurrency 5
+`.env` is intentionally ignored by Git.
 
-# Inject failures live
-python scripts/inject_incident.py --scenario rag_slow
+## Run
 
-# Check your implementation progress
-python scripts/validate_logs.py
+```powershell
+python -m uvicorn app.main:app --reload
+```
 
-# Generate reproducible HTML evidence from logs and alert config
-python scripts/export_evidence.py
+Useful endpoints:
 
-# Run answer-quality evaluation and simulated token/cost analysis
+| Endpoint | Purpose |
+|---|---|
+| `GET /health` | service, tracing, and incident state |
+| `POST /chat` | instrumented agent request |
+| `GET /metrics` | rolling metrics snapshot |
+| `GET /dashboard` | six-panel observability dashboard |
+| `GET /alerts/status` | evaluated alert state |
+
+## Verification
+
+Run the complete local verification set:
+
+```powershell
+python -m pytest -q --basetemp=.pytest-tmp
 python scripts/run_eval.py
-
-# Verify that each alert threshold activates the expected rule
 python scripts/evaluate_alerts.py
+python scripts/validate_logs.py
+python scripts/export_evidence.py
 ```
 
-## Repo map
+Expected results:
+
+- tests: `14 passed`
+- eval: `7/7`, `100%`
+- alert evaluation: `PASS`
+- log validation: `100/100`
+- PII leaks: `0`
+
+## Load and Incident Demo
+
+Generate ten requests:
+
+```powershell
+python scripts/load_test.py --concurrency 5
+```
+
+Inject and recover from incidents:
+
+```powershell
+python scripts/inject_incident.py --scenario tool_fail
+python scripts/load_test.py --concurrency 2
+python scripts/inject_incident.py --scenario tool_fail --disable
+```
+
+Incident endpoints are available only in development, only to local callers,
+and require `INCIDENT_ADMIN_TOKEN`.
+
+## Quality and Cost Evaluation
+
+`scripts/run_eval.py` evaluates seven canonical cases from
+`data/expected_answers.jsonl`, including:
+
+- required answer content
+- a refund-policy paraphrase
+- observability workflow
+- tail-latency debugging
+- alert design
+- PII safety
+- an unsupported-question negative check
+
+Cost uses the lab assumption of $3 per million input tokens and $15 per million
+output tokens. Token counts and prices are simulated and are not a provider
+invoice.
+
+| Metric | Result |
+|---|---:|
+| Cases passed | 7/7 |
+| Input tokens | 217 |
+| Output tokens | 156 |
+| Evaluated cost | $0.002991 |
+| Starter baseline estimate | $0.014301 |
+| Estimated reduction | 79.09% |
+
+## Evidence
+
+- [Group report](docs/blueprint-template.md)
+- [Individual report](docs/individual-report-TVKhoa.md)
+- [Contributor record](CONTRIBUTORS.md)
+- [Validation report](docs/evidence/validation-report.md)
+- [Independent agent audit](docs/evidence/agent-audit-report.md)
+- [Quality and cost report](docs/evidence/eval-cost-report.md)
+- [Alert evaluation report](docs/evidence/alert-evaluation-report.md)
+- [Dashboard screenshot](docs/evidence/dashboard.png)
+- [Logging and alert screenshot](docs/evidence/technical-evidence.png)
+- [Demo and oral review](docs/demo-and-oral-qa.md)
+
+## Repository Map
 
 ```text
 app/
-  main.py                FastAPI app
-  agent.py               core agent pipeline
-  logging_config.py      structlog config
-  middleware.py          correlation ID middleware
-  pii.py                 scrubbing helpers
-  tracing.py             Langfuse helpers
-  schemas.py             request/response/log models
-  metrics.py             in-memory metrics helpers
-  incidents.py           toggles for injected failures
-  mock_llm.py            deterministic fake LLM
-  mock_rag.py            deterministic fake retrieval
+  agent.py              agent pipeline and parent tracing observation
+  alerts.py             executable alert evaluation
+  logging_config.py     scrubbed JSONL and audit logging
+  main.py               FastAPI routes and incident authorization
+  metrics.py            rolling one-hour and daily metrics
+  middleware.py         correlation ID propagation
+  mock_llm.py           deterministic local response generator
+  mock_rag.py           retrieval and incident simulation
+  pii.py                PII detection, redaction, and hashing
+  tracing.py            Langfuse v3 adapter and safe fallback
 config/
-  slo.yaml               starter SLOs
-  alert_rules.yaml       starter alerts
-  logging_schema.json    expected log schema
+  alert_rules.yaml      production-style alert definitions
+  logging_schema.json   JSON Schema for logs
+  slo.yaml              SLO targets
 scripts/
-  load_test.py           generate requests
-  inject_incident.py     flip incident toggles
-  validate_logs.py       schema checks for logs
-data/
-  sample_queries.jsonl   requests for testing
-  expected_answers.jsonl starter quality checks
-  incidents.json         scenario descriptions
-  logs.jsonl             app output target
-  audit.jsonl            optional audit log output
-
+  evaluate_alerts.py    alert scenario verification
+  export_evidence.py    reproducible evidence page
+  inject_incident.py    authenticated incident control
+  load_test.py          concurrent request generation
+  run_eval.py           quality and cost evaluation
+  validate_logs.py      schema, enrichment, correlation, and PII checks
 docs/
-  blueprint-template.md  team submission template
-  alerts.md              runbook + alert worksheet
-  dashboard-spec.md      6-panel dashboard checklist
-  grading-evidence.md    evidence collection sheet
-  mock-debug-qa.md       oral/written debugging questions
+  blueprint-template.md group submission report
+  individual-report-TVKhoa.md
+  demo-and-oral-qa.md
+  evidence/
 ```
 
-## Team role suggestion
+## Submission Status
 
-- Member A: logging + PII
-- Member B: tracing + tags
-- Member C: SLO + alerts
-- Member D: load test + incident injection
-- Member E: dashboard + evidence
-- Member F: blueprint + demo lead
-
-## Grading policy (60/40 Split)
-
-Your final grade is calculated as follows:
-
-1. **Group Score (60%)**: 
-   - **Technical Implementation (30 pts)**: Verified by `validate_logs.py` and live system state.
-   - **Incident Response (10 pts)**: Accuracy of your root cause analysis in the report.
-   - **Live Demo (20 pts)**: Team presentation and system demonstration.
-2. **Individual Score (40%)**:
-   - **Individual Report (20 pts)**: Quality of your specific contributions in `docs/blueprint-template.md`.
-   - **Git Evidence (20 pts)**: Traceable work via commits and code ownership.
-
-**Passing Criteria**: 
-- [x] All implementation TODO blocks completed.
-- [ ] Minimum of 10 traces visible in Langfuse (credentials required).
-- [x] Dashboard shows all 6 required panels.
+- [x] implementation TODOs completed
+- [x] validation score at least 80/100
+- [x] dashboard contains all six panels
+- [x] three alert rules have runbooks and executable threshold checks
+- [x] individual contribution and Git evidence documented
+- [x] quality, token, and cost evaluation documented
+- [ ] at least 10 live Langfuse traces
+- [ ] Langfuse trace-list and waterfall screenshots

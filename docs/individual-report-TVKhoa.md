@@ -1,178 +1,208 @@
 # Individual Report - TVKhoa
 
-## Identity and Evidence
+## Identity
 
-- Git identity: `Khoatranvipaz1`
+- Contributor: Khoatranvipaz1 (TVKhoa)
+- Git email: `khoatranvippro@gmail.com`
 - Branch: `TVKhoa`
-- Main audited implementation commit:
-  [7ce531d](https://github.com/Khoatranvipaz1/Lab13-Observability/commit/7ce531d)
-- Repository: [Lab13-Observability](https://github.com/Khoatranvipaz1/Lab13-Observability)
-- Validation result: `100/100`
-- Automated tests: `14 passed`
-- Expected-answer and safety eval: `7/7 passed` (`100%`)
-- Evaluated simulated cost: `$0.002991`
-- Estimated starter baseline cost: `$0.014301`
-- Estimated cost reduction: `79.09%`
+- Repository: https://github.com/Khoatranvipaz1/Lab13-Observability
+- Audited implementation commit:
+  https://github.com/Khoatranvipaz1/Lab13-Observability/commit/7ce531d
+
+## Individual Results
+
+| Check | Result |
+|---|---:|
+| Automated tests | 14 passed |
+| Log validator | 100/100 |
+| JSON Schema failures | 0 |
+| PII leaks | 0 |
+| Quality/safety eval | 7/7 passed |
+| Simulated eval cost | $0.002991 |
+| Estimated cost reduction | 79.09% |
+| Alert scenarios | 4/4 passed |
 
 ## Work Completed
 
-### Correlation ID
+### Correlation and Request Context
 
-I completed `CorrelationIdMiddleware` so each request:
+I implemented request-level correlation in `CorrelationIdMiddleware`.
 
-1. Clears old `structlog` context variables to prevent cross-request leakage.
-2. Reuses the incoming `x-request-id`, or generates `req-<8 hex chars>`.
-3. Binds the ID to the logging context.
-4. Returns `x-request-id` and `x-response-time-ms` headers.
+- old context variables are cleared before each request
+- an incoming `x-request-id` is preserved
+- otherwise `req-<8 hex>` is generated
+- the ID is bound to `structlog.contextvars`
+- response headers include request ID and processing time
 
-This lets logs from the same request be searched using one stable identifier.
+The `/chat` endpoint binds hashed user ID, session ID, feature, model, and
+environment. Chat-specific context is removed in a `finally` block.
 
-### Structured Logging and Enrichment
+### Structured Logging and PII Protection
 
-For `/chat`, I bind:
+I completed the logging pipeline so records:
 
-- hashed user ID
-- session ID
-- feature
-- model
-- environment
-- correlation ID
+- follow the declared JSON Schema
+- include correlation and enrichment fields
+- are written as JSONL
+- are recursively scrubbed before output
+- write incident-control events to a separate audit log
 
-The raw user ID is not logged. SHA-256 is used to create a stable 12-character
-pseudonymous identifier. This supports grouping events by user without exposing
-the original identifier.
+PII patterns cover email, Vietnamese phone numbers, CCCD, credit cards,
+passports, and labeled Vietnamese addresses. Additional tests cover plus-address
+email syntax and nested payloads.
 
-### PII Protection
+### Safe Tracing
 
-I added patterns for:
+I implemented Langfuse-compatible parent and child observations:
 
-- email
-- Vietnamese phone number
-- CCCD
-- credit card
-- passport
-- Vietnamese address labels
+- `LabAgent.run`
+- `retrieve`
+- `fake_llm_generate`
 
-The logging processor scrubs strings recursively inside dictionaries, lists,
-tuples, event names, payloads, and exception details. Scrubbing at the logging
-pipeline is defense in depth: application code also logs sanitized previews,
-but the processor protects against future callers forgetting to sanitize.
+Automatic input and output capture is disabled to prevent raw PII from being
+sent to Langfuse. User and session identifiers are hashed. Query and answer
+previews are sanitized before attachment.
 
-### Metrics and Dashboard
+Without credentials, the tracing layer becomes a no-op so local execution does
+not emit authentication errors.
 
-The metrics snapshot exposes:
+### Rolling Metrics and Dashboard
 
-- request traffic
-- latency P50/P95/P99
-- total and average cost
-- input/output token totals
-- total errors and error breakdown
-- error rate
-- average quality score
+Metrics use timestamps rather than lifetime counters.
 
-The dashboard at `/dashboard` contains exactly six main panels, uses a one-hour
-view, refreshes every 20 seconds, displays units, and shows SLO thresholds.
+- traffic, latency, errors, tokens, cost, and quality use a rolling one-hour
+  window
+- cost budget uses a rolling 24-hour window
+- P50, P95, and P99 expose tail latency
+- error rate uses successful requests plus failed attempts as its denominator
+
+The dashboard presents six panels, refreshes every 20 seconds, labels units,
+and displays SLO thresholds.
+
+### Alerts and Incident Security
+
+I implemented executable alert checks for:
+
+- latency P95 above 5000 ms
+- error rate above 5%
+- hourly cost above twice the configured baseline
+
+`GET /alerts/status` exposes active state for the demo. A reproducible alert
+script verifies normal, latency, error, and cost scenarios.
+
+Incident endpoints are restricted to:
+
+- development environment
+- local callers
+- requests with the configured admin token
 
 ### Quality and Cost Evaluation
 
-I added a reproducible evaluation against `data/expected_answers.jsonl`.
-The evaluator checks required answer phrases rather than relying only on the
-application's heuristic quality score.
+I replaced the starter response with deterministic context-based behavior and
+added a seven-case evaluation suite. Cases include:
+
+- refund requirements
+- observability workflow
+- PII safety
+- refund paraphrase
+- tail-latency debugging
+- alert design
+- unsupported-question refusal
 
 Results:
 
-- 7/7 cases passed
-- 100% pass rate
-- 217 simulated input tokens
-- 156 simulated output tokens
-- $0.002991 evaluated cost
-- $0.014301 estimated starter cost
-- 79.09% estimated cost reduction
+| Metric | Result |
+|---|---:|
+| Cases passed | 7/7 |
+| Input tokens | 217 |
+| Output tokens | 156 |
+| Evaluated cost | $0.002991 |
+| Baseline estimate | $0.014301 |
+| Estimated reduction | 79.09% |
 
-The estimate uses $3 per million input tokens and $15 per million output tokens.
-The starter comparison uses 130 output tokens, the midpoint of its original
-random 80-180 range. This is a deterministic local estimate, not a provider
+The estimate uses the lab assumption of $3 per million input tokens and $15 per
+million output tokens. The baseline uses 130 output tokens, the midpoint of the
+starter's original random 80-180 range. This is a simulation, not a provider
 invoice.
 
-### Tracing
+### Independent Audit Fixes
 
-The agent method is wrapped with Langfuse `observe`. When credentials exist,
-the trace receives:
+An independent sub-agent review found and helped prioritize:
 
-- hashed user ID
-- session ID
-- feature and model tags
-- document count
-- sanitized query preview
-- input/output token usage
+- unsafe default Langfuse capture
+- missing child spans
+- incorrect dashboard window claims
+- static-only alerts
+- incomplete schema and PII validation
+- narrow eval coverage
+- unauthenticated incident controls
+- test state leakage
 
-When credentials are absent, tracing becomes a no-op so local development still
-works without authentication errors.
+I implemented fixes for each local issue. The audit record is available at
+`docs/evidence/agent-audit-report.md`.
 
-### Alerting, Incident Debugging, and Audit
+## Incident Investigation
 
-I verified the `tool_fail` scenario:
+For the `tool_fail` drill:
 
-- 10 requests returned HTTP 500.
-- Error rate increased to 50%.
-- Logs identified `RuntimeError`.
-- The payload identified `Vector store timeout` as the cause.
-- Disabling the incident restored the service state.
+1. Metrics showed the error-rate symptom.
+2. `/alerts/status` activated `high_error_rate`.
+3. Logs grouped failures as `RuntimeError`.
+4. The sanitized detail identified `Vector store timeout`.
+5. The authenticated incident script disabled the failure.
+6. `/health` confirmed that all incident toggles were false.
 
-Incident enable/disable actions are also written to `data/audit.jsonl`, separate
-from normal application logs.
+The Langfuse trace stage is implemented but could not be demonstrated live
+without credentials.
 
-## Technical Explanations for Oral Review
+## Oral Review Notes
 
 ### Why clear context variables?
 
-Workers process many requests over time. Without clearing context at the start
-of middleware, fields from a previous request could appear in a later request's
-logs. Clearing first and then binding the current correlation ID prevents this
-context leakage.
+An async worker processes many requests. Without clearing context at request
+start, fields from one request could appear in another request's logs.
 
-### How is P95 calculated?
+### Why hash identifiers?
 
-Recorded latencies are sorted, and the nearest-rank position for percentile
-`p` is selected. P95 represents a tail-latency boundary: approximately 95% of
-requests are at or below that value. It is more useful than an average for
-detecting a smaller set of very slow requests.
+Hashing supports repeated-user or repeated-session correlation without storing
+the raw identifier. It is pseudonymization, not full anonymization.
 
-### Why hash instead of redact user ID?
+### Why use P95?
 
-Full redaction protects privacy but removes the ability to correlate activity
-for the same user. A one-way hash preserves grouping while avoiding storage of
-the raw identifier. It is pseudonymization, not complete anonymization, so
-access controls and retention policies are still required.
+An average can hide a slow minority. P95 makes tail latency visible and is a
+better operational SLI.
 
-### Why use Metrics, then Traces, then Logs?
+### Why scrub in the logging processor?
 
-Metrics reveal that a service-level symptom exists. Traces narrow the symptom
-to a slow or failed operation. Logs then provide detailed context such as the
-error type, incident state, and sanitized request metadata. This ordering keeps
-debugging efficient.
+Endpoint-level sanitization can be forgotten. Pipeline-level recursive
+scrubbing provides defense in depth for every caller and nested payload.
 
-### Why is the error-rate denominator requests plus errors?
+### Why Metrics -> Traces -> Logs?
 
-Successful requests are recorded after the agent completes, while failed
-attempts call `record_error`. Therefore, total attempts are successful requests
-plus failed attempts. Error rate is:
+Metrics identify the service symptom. Traces localize the failing or slow
+operation. Logs explain detailed context and root cause.
 
-`errors / (successful requests + errors) * 100`
+### How is error rate calculated?
 
-## Verification Evidence
+`failed attempts / (successful requests + failed attempts) * 100`
 
-- Dashboard: `docs/evidence/dashboard.png`
-- Logging, PII, error and alerts: `docs/evidence/technical-evidence.png`
-- Audit log: `data/audit.jsonl`
-- Tests: `tests/test_app.py`, `tests/test_pii.py`, `tests/test_metrics.py`
-- Validator: `scripts/validate_logs.py`
-- Quality and cost eval: `docs/evidence/eval-cost-report.md`
-- Contributor ownership: `CONTRIBUTORS.md`
+### Is the cost result real billing?
 
-## Remaining Group Work
+No. It is a reproducible local simulation based on estimated tokens and an
+explicit pricing assumption.
 
-All local implementation, testing, dashboard, incident response, and reporting
-work is complete. The only external requirement still blocked is live Langfuse
-evidence: valid credentials are required to publish at least 10 traces and
-capture the trace-list and waterfall screenshots.
+## Evidence
+
+- `CONTRIBUTORS.md`
+- `docs/evidence/validation-report.md`
+- `docs/evidence/agent-audit-report.md`
+- `docs/evidence/eval-cost-report.md`
+- `docs/evidence/alert-evaluation-report.md`
+- `docs/evidence/dashboard.png`
+- `docs/evidence/technical-evidence.png`
+
+## Remaining External Requirement
+
+The rubric requires at least 10 live Langfuse traces plus trace-list and
+waterfall screenshots. These cannot be truthfully produced until valid
+Langfuse credentials are added to `.env`.

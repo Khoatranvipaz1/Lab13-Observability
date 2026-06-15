@@ -1,66 +1,211 @@
 # Day 13 Observability Lab Report
 
-> **Instruction**: Fill in all sections below. This report is designed to be parsed by an automated grading assistant. Ensure all tags (e.g., `[GROUP_NAME]`) are preserved.
+> Automated grading tags are intentionally preserved.
 
 ## 1. Team Metadata
+
 - [GROUP_NAME]: TVKhoa
 - [REPO_URL]: https://github.com/Khoatranvipaz1/Lab13-Observability
 - [MEMBERS]:
-  - Member A: Khoatranvipaz1 (TVKhoa) | Role: Full-stack observability implementation, testing, dashboard, incident response, evidence, and report
+  - Khoatranvipaz1 (TVKhoa) | Full implementation owner
 
----
+The repository was completed as a one-member submission. Ownership and commit
+evidence are recorded in `CONTRIBUTORS.md`.
 
-## 2. Group Performance (Auto-Verified)
+## 2. Verified Results
+
 - [VALIDATE_LOGS_FINAL_SCORE]: 100/100
-- [TOTAL_TRACES_COUNT]: 0 (Langfuse credentials are not configured in `.env`)
+- [TOTAL_TRACES_COUNT]: 0
 - [PII_LEAKS_FOUND]: 0
-- [QUALITY_EVAL_PASS_RATE]: 100% (7/7 expected-answer and safety cases)
-- [EVAL_COST_USD]: $0.002991 (simulated pricing assumption)
+- [QUALITY_EVAL_PASS_RATE]: 100% (7/7)
+- [EVAL_COST_USD]: $0.002991 (simulated)
+- [AUTOMATED_TESTS]: 14 passed
+- [ALERT_EVALUATION]: PASS (4/4 scenarios)
 
----
+The trace count is zero because `LANGFUSE_PUBLIC_KEY` and
+`LANGFUSE_SECRET_KEY` are not configured. No trace evidence is claimed without
+live credentials.
 
-## 3. Technical Evidence (Group)
+## 3. Technical Implementation
 
-### 3.1 Logging & Tracing
-- [EVIDENCE_CORRELATION_ID_SCREENSHOT]: docs/evidence/technical-evidence.png
-- [EVIDENCE_PII_REDACTION_SCREENSHOT]: docs/evidence/technical-evidence.png
-- [EVIDENCE_TRACE_WATERFALL_SCREENSHOT]: Not available until Langfuse credentials are configured
-- [TRACE_WATERFALL_EXPLANATION]: The instrumented `LabAgent.run` observation records retrieval/LLM execution metadata, sanitized query preview, document count, token usage, hashed user ID, session ID, feature, and model tags. A live waterfall requires valid Langfuse credentials.
+### 3.1 Logging and Correlation
 
-### 3.2 Dashboard & SLOs
-- [DASHBOARD_6_PANELS_SCREENSHOT]: docs/evidence/dashboard.png
+Every request receives an incoming or generated `req-<8 hex>` correlation ID.
+The middleware clears previous context, binds the current ID, and returns both
+`x-request-id` and `x-response-time-ms`.
+
+Chat logs include:
+
+- hashed user ID
+- session ID
+- feature
+- model
+- environment
+- correlation ID
+- latency, tokens, cost, and sanitized payload previews
+
+Logs are checked against `config/logging_schema.json` using JSON Schema Draft
+2020-12.
+
+- [EVIDENCE_CORRELATION_ID_SCREENSHOT]:
+  `docs/evidence/technical-evidence.png`
+
+### 3.2 PII and Audit Safety
+
+The logging pipeline recursively redacts sensitive strings inside nested
+dictionaries, lists, tuples, events, payloads, and error details. Covered
+patterns include email, Vietnamese phone numbers, CCCD, credit cards,
+passports, and labeled Vietnamese addresses.
+
+Incident-control events are duplicated to `data/audit.jsonl`.
+
+- [EVIDENCE_PII_REDACTION_SCREENSHOT]:
+  `docs/evidence/technical-evidence.png`
+- [PII_LEAKS_FOUND]: 0
+
+### 3.3 Tracing
+
+The intended Langfuse waterfall contains:
+
+1. `LabAgent.run` parent observation
+2. `retrieve` child observation
+3. `fake_llm_generate` child observation
+
+Automatic raw input/output capture is disabled. User and session identifiers
+are hashed, while query and answer previews are sanitized.
+
+- [EVIDENCE_TRACE_WATERFALL_SCREENSHOT]:
+  Not available because Langfuse credentials are empty
+- [TRACE_WATERFALL_EXPLANATION]:
+  The parent observation represents the full agent request. Child observations
+  separate retrieval from generation so latency or failures can be localized.
+  Explicit metadata includes document count, sanitized previews, and token
+  usage without transmitting the raw request.
+
+### 3.4 Dashboard, Metrics, and SLOs
+
+The dashboard contains exactly six panels:
+
+1. latency P50/P95/P99
+2. rolling one-hour traffic
+3. error rate and breakdown
+4. rolling 24-hour cost budget
+5. input/output tokens
+6. quality proxy
+
+It refreshes every 20 seconds and displays units and thresholds.
+
+- [DASHBOARD_6_PANELS_SCREENSHOT]: `docs/evidence/dashboard.png`
+
 - [SLO_TABLE]:
-| SLI | Target | Window | Current Value |
+
+| SLI | Target | Window | Verified demo value |
 |---|---:|---|---:|
-| Latency P95 | < 3000ms | 28d | 150ms |
-| Error Rate | < 2% | 28d | 0% (clean run) |
-| Cost Budget | < $2.5/day | 1d | $0.004635 per 10-request demo |
+| Latency P95 | < 3000 ms | rolling 1h | 150 ms |
+| Error Rate | < 2% | rolling 1h | 0% clean run |
+| Cost Budget | < $2.50 | rolling 24h | $0.004635 |
+| Quality Score | >= 0.75 | rolling 1h | 0.89 |
 
-### 3.3 Alerts & Runbook
-- [ALERT_RULES_SCREENSHOT]: docs/evidence/technical-evidence.png
-- [SAMPLE_RUNBOOK_LINK]: docs/alerts.md#1-high-latency-p95
+### 3.5 Alerts and Runbooks
 
----
+Three rules are defined and evaluated:
 
-## 4. Incident Response (Group)
+| Alert | Threshold | Verification |
+|---|---|---|
+| High latency | P95 > 5000 ms | PASS |
+| High error rate | error rate > 5% | PASS |
+| Cost spike | hourly cost > 2x baseline | PASS |
+
+`GET /alerts/status` evaluates current threshold state. Production-style `for`
+durations remain in `config/alert_rules.yaml`.
+
+- [ALERT_RULES_SCREENSHOT]: `docs/evidence/technical-evidence.png`
+- [SAMPLE_RUNBOOK_LINK]: `docs/alerts.md#1-high-latency-p95`
+- [ALERT_EVALUATION_REPORT]:
+  `docs/evidence/alert-evaluation-report.md`
+
+## 4. Quality and Cost Evaluation
+
+Seven cases were evaluated from `data/expected_answers.jsonl`. The dataset
+contains exact requirements, a paraphrase, an unsupported-question safety
+check, and observability scenarios.
+
+| Metric | Result |
+|---|---:|
+| Cases passed | 7/7 |
+| Pass rate | 100% |
+| Input tokens | 217 |
+| Output tokens | 156 |
+| Evaluated cost | $0.002991 |
+| Starter baseline estimate | $0.014301 |
+| Estimated reduction | 79.09% |
+
+Pricing and token counts are local simulations, not a provider invoice.
+
+Evidence: `docs/evidence/eval-cost-report.md`.
+
+## 5. Incident Response
+
 - [SCENARIO_NAME]: tool_fail
-- [SYMPTOMS_OBSERVED]: 10 chat requests returned HTTP 500; error rate increased to 50%.
-- [ROOT_CAUSE_PROVED_BY]: `request_failed` logs show `RuntimeError` with `Vector store timeout`.
-- [FIX_ACTION]: Disabled the `tool_fail` incident toggle and verified health returned all toggles false.
-- [PREVENTIVE_MEASURE]: Alert on error rate and group logs by `error_type`; use a retrieval fallback or circuit breaker.
+- [SYMPTOMS_OBSERVED]:
+  Chat requests returned HTTP 500 and the rolling error rate increased to 50%.
+- [ROOT_CAUSE_PROVED_BY]:
+  `request_failed` records contained `RuntimeError` and the sanitized detail
+  `Vector store timeout`.
+- [FIX_ACTION]:
+  Disabled `tool_fail` with the authenticated local incident script and
+  verified that `/health` returned all incident toggles as false.
+- [PREVENTIVE_MEASURE]:
+  Alert on error rate, group logs by `error_type`, protect incident controls,
+  and add retrieval fallback or circuit-breaker behavior.
 
----
+The debug sequence was Metrics -> Logs, with the trace stage prepared but not
+available live because Langfuse credentials are absent.
 
-## 5. Individual Contributions & Evidence
+## 6. Individual Contribution
 
 ### Khoatranvipaz1 (TVKhoa)
-- [TASKS_COMPLETED]: Implemented correlation ID propagation, structured log enrichment, recursive PII redaction, Langfuse-compatible tracing, error-rate metrics, separate audit logs, integration tests, the six-panel dashboard, and reproducible technical evidence.
-- [EVIDENCE_LINK]: https://github.com/Khoatranvipaz1/Lab13-Observability/commit/7ce531d
-- [INDIVIDUAL_REPORT]: docs/individual-report-TVKhoa.md
 
----
+- [TASKS_COMPLETED]:
+  Correlation middleware, structured logging, PII protection, safe tracing,
+  rolling metrics, dashboard, alerts, incident security, quality/cost eval,
+  tests, evidence, and reports.
+- [EVIDENCE_LINK]:
+  https://github.com/Khoatranvipaz1/Lab13-Observability/commit/7ce531d
+- [INDIVIDUAL_REPORT]: `docs/individual-report-TVKhoa.md`
+- [CONTRIBUTOR_RECORD]: `CONTRIBUTORS.md`
 
-## 6. Bonus Items (Optional)
-- [BONUS_COST_OPTIMIZATION]: Deterministic context-based answers reduced estimated eval cost from $0.014301 to $0.002991 (79.09%) versus the original output-token midpoint baseline across 7 cases. Evidence: `docs/evidence/eval-cost-report.md`.
-- [BONUS_AUDIT_LOGS]: Incident control actions are written separately to `data/audit.jsonl`.
-- [BONUS_CUSTOM_METRIC]: Dashboard includes heuristic quality score and error breakdown.
+## 7. Bonus Evidence
+
+- [BONUS_COST_OPTIMIZATION]:
+  Simulated eval cost decreased from $0.014301 to $0.002991, an estimated
+  79.09% reduction across seven cases.
+- [BONUS_AUDIT_LOGS]:
+  Incident controls write to a separate audit stream.
+- [BONUS_CUSTOM_METRIC]:
+  Quality score, error breakdown, rolling hourly cost, and daily cost budget.
+- [BONUS_AUTOMATION]:
+  Reproducible scripts generate eval, alert, validation, and screenshot-ready
+  evidence.
+
+## 8. Submission Status
+
+Completed:
+
+- local implementation
+- 14 automated tests
+- validator score 100/100
+- zero detected PII leaks
+- six-panel dashboard
+- alert evaluation
+- incident drill
+- individual and group reports
+- Git contribution evidence
+
+External blocker:
+
+- minimum 10 live Langfuse traces
+- trace-list screenshot
+- full waterfall screenshot
+
+These three items require valid Langfuse credentials in `.env`.
