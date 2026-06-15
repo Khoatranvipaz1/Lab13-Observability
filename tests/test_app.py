@@ -1,4 +1,5 @@
 import json
+import importlib
 
 from fastapi.testclient import TestClient
 
@@ -42,3 +43,50 @@ def test_chat_propagates_correlation_id_and_scrubs_logs(tmp_path, monkeypatch) -
     raw = json.dumps(records)
     assert "student@" not in raw
     assert "4111" not in raw
+
+
+def test_dashboard_is_available() -> None:
+    with TestClient(app) as client:
+        response = client.get("/dashboard")
+
+    assert response.status_code == 200
+    assert "Observability Control Room" in response.text
+
+
+def test_langfuse_v3_adapter_moves_usage_into_metadata(monkeypatch) -> None:
+    from app import tracing
+
+    calls = []
+
+    class FakeClient:
+        def update_current_trace(self, **kwargs):
+            calls.append(("trace", kwargs))
+
+        def update_current_span(self, **kwargs):
+            calls.append(("span", kwargs))
+
+    monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-test")
+    monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-test")
+    monkeypatch.setattr("langfuse.get_client", lambda: FakeClient())
+    reloaded = importlib.reload(tracing)
+
+    reloaded.langfuse_context.update_current_observation(
+        metadata={"doc_count": 1},
+        usage_details={"input": 10, "output": 20},
+    )
+
+    assert calls == [
+        (
+            "span",
+            {
+                "metadata": {
+                    "doc_count": 1,
+                    "usage_details": {"input": 10, "output": 20},
+                }
+            },
+        )
+    ]
+
+    monkeypatch.delenv("LANGFUSE_PUBLIC_KEY")
+    monkeypatch.delenv("LANGFUSE_SECRET_KEY")
+    importlib.reload(tracing)

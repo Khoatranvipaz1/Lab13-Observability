@@ -1,0 +1,273 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Observability Control Room</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111f;
+      --panel: #101d2d;
+      --panel-2: #13243a;
+      --line: #28415f;
+      --text: #eef6ff;
+      --muted: #8fa8c2;
+      --cyan: #43d9d0;
+      --amber: #ffbf69;
+      --red: #ff6b7a;
+      --green: #6fe3a1;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 12% 8%, #12345a 0, transparent 28%),
+        radial-gradient(circle at 92% 0%, #173c44 0, transparent 24%),
+        var(--bg);
+    }
+    main { width: min(1440px, 94vw); margin: 0 auto; padding: 34px 0 44px; }
+    header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 24px;
+    }
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--cyan);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: .18em;
+      text-transform: uppercase;
+    }
+    h1 { margin: 0; font-size: clamp(28px, 4vw, 48px); letter-spacing: -.04em; }
+    .subtitle { margin: 8px 0 0; color: var(--muted); }
+    .status {
+      min-width: 250px;
+      padding: 14px 16px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: #0a1726cc;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    .status strong { color: var(--green); }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 16px;
+    }
+    .panel {
+      position: relative;
+      min-height: 250px;
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: linear-gradient(145deg, var(--panel-2), var(--panel));
+      box-shadow: 0 16px 50px #0005;
+      padding: 20px;
+    }
+    .panel::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto auto 0;
+      width: 100%;
+      height: 3px;
+      background: var(--accent, var(--cyan));
+    }
+    .panel-head { display: flex; justify-content: space-between; gap: 12px; }
+    h2 { margin: 0; font-size: 16px; letter-spacing: .01em; }
+    .unit, .threshold { color: var(--muted); font-size: 12px; }
+    .value { margin-top: 22px; font-size: 42px; font-weight: 780; letter-spacing: -.04em; }
+    .value small { color: var(--muted); font-size: 15px; font-weight: 600; }
+    .triplet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 22px; }
+    .metric { padding: 12px; border-radius: 12px; background: #07111f88; }
+    .metric b { display: block; margin-top: 5px; font-size: 19px; }
+    canvas { width: 100%; height: 76px; margin-top: 18px; }
+    .bar {
+      display: flex;
+      height: 12px;
+      overflow: hidden;
+      margin-top: 26px;
+      border-radius: 999px;
+      background: #07111f;
+    }
+    .bar span { transition: width .3s ease; }
+    .legend { display: flex; justify-content: space-between; margin-top: 9px; color: var(--muted); font-size: 12px; }
+    .ok { color: var(--green); }
+    .bad { color: var(--red); }
+    footer { margin-top: 18px; color: var(--muted); font-size: 12px; text-align: right; }
+    @media (max-width: 1000px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 680px) {
+      header { align-items: stretch; flex-direction: column; }
+      .grid { grid-template-columns: 1fr; }
+      .status { min-width: 0; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div>
+        <p class="eyebrow">Day 13 / Live telemetry</p>
+        <h1>Observability Control Room</h1>
+        <p class="subtitle">Layer 2 overview · Last 1 hour · Auto refresh every 20 seconds</p>
+      </div>
+      <div class="status">
+        <strong id="health">Connecting</strong><br>
+        <span id="updated">Waiting for first metrics snapshot</span>
+      </div>
+    </header>
+
+    <section class="grid">
+      <article class="panel" style="--accent: var(--cyan)">
+        <div class="panel-head"><h2>Latency percentiles</h2><span class="unit">milliseconds</span></div>
+        <div class="triplet">
+          <div class="metric"><span class="unit">P50</span><b id="p50">0</b></div>
+          <div class="metric"><span class="unit">P95</span><b id="p95">0</b></div>
+          <div class="metric"><span class="unit">P99</span><b id="p99">0</b></div>
+        </div>
+        <canvas id="latencyChart"></canvas>
+        <div class="threshold">SLO line: P95 &lt; 3,000 ms</div>
+      </article>
+
+      <article class="panel" style="--accent: var(--green)">
+        <div class="panel-head"><h2>Traffic</h2><span class="unit">requests</span></div>
+        <div class="value"><span id="traffic">0</span> <small>completed</small></div>
+        <canvas id="trafficChart"></canvas>
+        <div class="threshold">Live process total · 1 hour view</div>
+      </article>
+
+      <article class="panel" style="--accent: var(--red)">
+        <div class="panel-head"><h2>Error rate</h2><span class="unit">percent</span></div>
+        <div class="value"><span id="errorRate">0.00</span><small>%</small></div>
+        <div class="bar"><span id="successBar" style="width:100%;background:var(--green)"></span><span id="errorBar" style="width:0;background:var(--red)"></span></div>
+        <div class="legend"><span id="errorCount">0 errors</span><span>SLO &lt; 2%</span></div>
+        <div class="threshold" id="errorBreakdown">No errors recorded</div>
+      </article>
+
+      <article class="panel" style="--accent: var(--amber)">
+        <div class="panel-head"><h2>Cost over time</h2><span class="unit">USD</span></div>
+        <div class="value">$<span id="cost">0.0000</span></div>
+        <canvas id="costChart"></canvas>
+        <div class="threshold">Daily budget threshold: $2.50</div>
+      </article>
+
+      <article class="panel" style="--accent: #a98bff">
+        <div class="panel-head"><h2>Token volume</h2><span class="unit">tokens</span></div>
+        <div class="triplet" style="grid-template-columns:repeat(2,1fr)">
+          <div class="metric"><span class="unit">Input</span><b id="tokensIn">0</b></div>
+          <div class="metric"><span class="unit">Output</span><b id="tokensOut">0</b></div>
+        </div>
+        <div class="bar"><span id="inputBar" style="width:50%;background:#a98bff"></span><span id="outputBar" style="width:50%;background:var(--cyan)"></span></div>
+        <div class="legend"><span>Prompt</span><span>Completion</span></div>
+      </article>
+
+      <article class="panel" style="--accent: var(--green)">
+        <div class="panel-head"><h2>Quality proxy</h2><span class="unit">score 0-1</span></div>
+        <div class="value"><span id="quality">0.00</span></div>
+        <div class="bar"><span id="qualityBar" style="width:0;background:var(--green)"></span></div>
+        <div class="legend"><span>Heuristic average</span><span>Target ≥ 0.75</span></div>
+        <div class="threshold" id="qualityStatus">Awaiting samples</div>
+      </article>
+    </section>
+    <footer>Source: <code>/metrics</code> · Service: day13-observability-lab</footer>
+  </main>
+
+  <script>
+    const history = { latency: [], traffic: [], cost: [] };
+    const $ = (id) => document.getElementById(id);
+    const format = (value) => Number(value || 0).toLocaleString();
+
+    function draw(canvasId, values, color, threshold = null) {
+      const canvas = $(canvasId);
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = canvas.clientWidth * ratio;
+      canvas.height = canvas.clientHeight * ratio;
+      const ctx = canvas.getContext("2d");
+      ctx.scale(ratio, ratio);
+      const width = canvas.clientWidth;
+      const height = canvas.clientHeight;
+      const max = Math.max(...values, threshold || 0, 1);
+      if (threshold !== null) {
+        const y = height - (threshold / max) * (height - 8) - 4;
+        ctx.setLineDash([5, 5]);
+        ctx.strokeStyle = "#ffbf6988";
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(width, y); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+      if (values.length < 2) return;
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      values.forEach((value, index) => {
+        const x = (index / (values.length - 1)) * width;
+        const y = height - (value / max) * (height - 8) - 4;
+        index ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+      });
+      ctx.stroke();
+    }
+
+    function push(key, value) {
+      history[key].push(Number(value || 0));
+      if (history[key].length > 180) history[key].shift();
+    }
+
+    async function refresh() {
+      try {
+        const response = await fetch("/metrics", { cache: "no-store" });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        $("health").textContent = "Live";
+        $("updated").textContent = `Updated ${new Date().toLocaleTimeString()}`;
+        $("p50").textContent = format(data.latency_p50);
+        $("p95").textContent = format(data.latency_p95);
+        $("p99").textContent = format(data.latency_p99);
+        $("traffic").textContent = format(data.traffic);
+        $("errorRate").textContent = Number(data.error_rate_pct).toFixed(2);
+        $("errorCount").textContent = `${format(data.errors_total)} errors`;
+        $("cost").textContent = Number(data.total_cost_usd).toFixed(4);
+        $("tokensIn").textContent = format(data.tokens_in_total);
+        $("tokensOut").textContent = format(data.tokens_out_total);
+        $("quality").textContent = Number(data.quality_avg).toFixed(2);
+
+        const errorPct = Math.min(100, Number(data.error_rate_pct));
+        $("successBar").style.width = `${100 - errorPct}%`;
+        $("errorBar").style.width = `${errorPct}%`;
+        const breakdown = Object.entries(data.error_breakdown || {});
+        $("errorBreakdown").textContent = breakdown.length
+          ? breakdown.map(([name, count]) => `${name}: ${count}`).join(" · ")
+          : "No errors recorded";
+
+        const totalTokens = data.tokens_in_total + data.tokens_out_total || 1;
+        $("inputBar").style.width = `${data.tokens_in_total / totalTokens * 100}%`;
+        $("outputBar").style.width = `${data.tokens_out_total / totalTokens * 100}%`;
+        const qualityPct = Math.min(100, Number(data.quality_avg) * 100);
+        $("qualityBar").style.width = `${qualityPct}%`;
+        $("qualityStatus").textContent = qualityPct >= 75 ? "Quality target met" : "Below quality target";
+        $("qualityStatus").className = `threshold ${qualityPct >= 75 ? "ok" : "bad"}`;
+
+        push("latency", data.latency_p95);
+        push("traffic", data.traffic);
+        push("cost", data.total_cost_usd);
+        draw("latencyChart", history.latency, "#43d9d0", 3000);
+        draw("trafficChart", history.traffic, "#6fe3a1");
+        draw("costChart", history.cost, "#ffbf69", 2.5);
+      } catch (error) {
+        $("health").textContent = "Disconnected";
+        $("health").className = "bad";
+        $("updated").textContent = error.message;
+      }
+    }
+
+    refresh();
+    setInterval(refresh, 20000);
+    addEventListener("resize", refresh);
+  </script>
+</body>
+</html>

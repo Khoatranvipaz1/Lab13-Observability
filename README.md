@@ -1,6 +1,7 @@
-# Day 13 Observability Lab Template
+# Day 13 Observability Lab
 
-Template repo for a 4-hour hands-on lab on Monitoring, Logging, and Observability.
+Completed hands-on lab implementation for Monitoring, Logging, and
+Observability.
 
 ## What students will build
 
@@ -12,7 +13,8 @@ A small FastAPI "agent" instrumented with:
 - minimal metrics aggregation
 - SLOs, alerts, and a blueprint report
 
-This template is intentionally incomplete. Teams are expected to finish TODOs during the lab.
+The local implementation is complete and validated. Live Langfuse evidence
+requires credentials in `.env`.
 
 ## Suggested lab flow (Gapped Template)
 
@@ -30,10 +32,13 @@ This template is intentionally incomplete. Teams are expected to finish TODOs du
 ```bash
 python -m venv .venv
 source .venv/bin/activate
+# Windows PowerShell: .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 # Update configuration values in .env
 uvicorn app.main:app --reload
 ```
+
+Open `http://127.0.0.1:8000/dashboard` for the six-panel dashboard.
 
 ## Tooling
 
@@ -46,6 +51,9 @@ python scripts/inject_incident.py --scenario rag_slow
 
 # Check your implementation progress
 python scripts/validate_logs.py
+
+# Generate reproducible HTML evidence from logs and alert config
+python scripts/export_evidence.py
 ```
 
 ## Repo map
@@ -108,6 +116,6 @@ Your final grade is calculated as follows:
    - **Git Evidence (20 pts)**: Traceable work via commits and code ownership.
 
 **Passing Criteria**: 
-- All `TODO` blocks must be completed.
-- Minimum of 10 traces must be visible in Langfuse.
-- Dashboard must show all 6 required panels.
+- [x] All implementation TODO blocks completed.
+- [ ] Minimum of 10 traces visible in Langfuse (credentials required).
+- [x] Dashboard shows all 6 required panels.

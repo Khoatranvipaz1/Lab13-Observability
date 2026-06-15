@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 import os
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from structlog.contextvars import bind_contextvars, unbind_contextvars
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
@@ -21,13 +22,12 @@ from .tracing import tracing_enabled
 
 configure_logging()
 log = get_logger()
-app = FastAPI(title="Day 13 Observability Lab")
-app.add_middleware(CorrelationIdMiddleware)
 agent = LabAgent()
+DASHBOARD_PATH = Path(__file__).resolve().parents[1] / "static" / "dashboard.html"
 
 
-@app.on_event("startup")
-async def startup() -> None:
+@asynccontextmanager
+async def lifespan(_: FastAPI):
     log.info(
         "app_started",
         service=os.getenv("APP_NAME", "day13-observability-lab"),
@@ -35,11 +35,21 @@ async def startup() -> None:
         correlation_id="system",
         payload={"tracing_enabled": tracing_enabled()},
     )
+    yield
+
+
+app = FastAPI(title="Day 13 Observability Lab", lifespan=lifespan)
+app.add_middleware(CorrelationIdMiddleware)
 
 
 @app.get("/health")
 async def health() -> dict:
     return {"ok": True, "tracing_enabled": tracing_enabled(), "incidents": status()}
+
+
+@app.get("/dashboard", include_in_schema=False)
+async def dashboard() -> FileResponse:
+    return FileResponse(DASHBOARD_PATH)
 
 
 @app.get("/metrics")
