@@ -1,5 +1,5 @@
 import json
-import importlib
+from contextlib import contextmanager
 from pathlib import Path
 
 from fastapi.testclient import TestClient
@@ -54,43 +54,40 @@ def test_dashboard_is_available() -> None:
     assert "Observability Control Room" in response.text
 
 
-def test_langfuse_v3_adapter_moves_usage_into_metadata(monkeypatch) -> None:
+def test_langfuse_v4_helpers_update_and_flush(monkeypatch) -> None:
     from app import tracing
 
     calls = []
 
     class FakeClient:
-        def update_current_trace(self, **kwargs):
-            calls.append(("trace", kwargs))
-
         def update_current_span(self, **kwargs):
             calls.append(("span", kwargs))
 
-    monkeypatch.setenv("LANGFUSE_PUBLIC_KEY", "pk-test")
-    monkeypatch.setenv("LANGFUSE_SECRET_KEY", "sk-test")
-    monkeypatch.setattr("langfuse.get_client", lambda: FakeClient())
-    reloaded = importlib.reload(tracing)
+        def update_current_generation(self, **kwargs):
+            calls.append(("generation", kwargs))
 
-    reloaded.langfuse_context.update_current_observation(
-        metadata={"doc_count": 1},
-        usage_details={"input": 10, "output": 20},
+        def flush(self):
+            calls.append(("flush", {}))
+
+    monkeypatch.setattr(tracing, "get_client", lambda: FakeClient())
+    tracing.update_current_span(metadata={"doc_count": "1"})
+    tracing.update_current_generation(
+        model="test-model",
+        usage_details={"input_tokens": 10, "output_tokens": 20},
     )
+    tracing.flush_traces()
 
     assert calls == [
+        ("span", {"metadata": {"doc_count": "1"}}),
         (
-            "span",
+            "generation",
             {
-                "metadata": {
-                    "doc_count": 1,
-                    "usage_details": {"input": 10, "output": 20},
-                }
+                "model": "test-model",
+                "usage_details": {"input_tokens": 10, "output_tokens": 20},
             },
-        )
+        ),
+        ("flush", {}),
     ]
-
-    monkeypatch.delenv("LANGFUSE_PUBLIC_KEY")
-    monkeypatch.delenv("LANGFUSE_SECRET_KEY")
-    importlib.reload(tracing)
 
 
 def test_agent_answers_expected_eval_phrases() -> None:
@@ -162,17 +159,25 @@ def test_alert_status_reports_active_error_alert() -> None:
 
 def test_agent_explicit_trace_metadata_does_not_contain_raw_pii(monkeypatch) -> None:
     from app import agent as agent_module
+    from app import mock_llm, mock_rag
 
     calls = []
 
-    class FakeContext:
-        def update_current_trace(self, **kwargs):
-            calls.append(kwargs)
+    @contextmanager
+    def fake_attributes(**kwargs):
+        calls.append(("attributes", kwargs))
+        yield
 
-        def update_current_observation(self, **kwargs):
-            calls.append(kwargs)
+    def capture_span(**kwargs):
+        calls.append(("span", kwargs))
 
-    monkeypatch.setattr(agent_module, "langfuse_context", FakeContext())
+    def capture_generation(**kwargs):
+        calls.append(("generation", kwargs))
+
+    monkeypatch.setattr(agent_module, "trace_attributes", fake_attributes)
+    monkeypatch.setattr(agent_module, "update_current_span", capture_span)
+    monkeypatch.setattr(mock_rag, "update_current_span", capture_span)
+    monkeypatch.setattr(mock_llm, "update_current_generation", capture_generation)
     result = agent_module.LabAgent().run(
         user_id="student@example.com",
         feature="qa",
@@ -185,3 +190,38 @@ def test_agent_explicit_trace_metadata_does_not_contain_raw_pii(monkeypatch) -> 
     assert "student@example.com" not in serialized
     assert "private-session" not in serialized
     assert "[REDACTED_EMAIL]" in serialized
+
+
+def test_agent_propagates_attributes_before_child_observations(monkeypatch) -> None:
+    from app import agent as agent_module
+
+    events = []
+
+    @contextmanager
+    def fake_attributes(**kwargs):
+        events.append(("attributes_start", kwargs))
+        yield
+        events.append(("attributes_end", {}))
+
+    class FakeLLM:
+        def generate(self, prompt):
+            events.append(("generation", {}))
+            return agent_module.FakeLLM().generate(prompt)
+
+    def fake_retrieve(message):
+        events.append(("retrieval", {}))
+        return ["document"]
+
+    monkeypatch.setattr(agent_module, "trace_attributes", fake_attributes)
+    monkeypatch.setattr(agent_module, "update_current_span", lambda **kwargs: None)
+    monkeypatch.setattr(agent_module, "retrieve", fake_retrieve)
+    lab_agent = agent_module.LabAgent()
+    lab_agent.llm = FakeLLM()
+    lab_agent.run("user", "qa", "session", "refund policy")
+
+    assert [event[0] for event in events] == [
+        "attributes_start",
+        "retrieval",
+        "generation",
+        "attributes_end",
+    ]

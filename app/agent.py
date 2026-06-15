@@ -7,7 +7,7 @@ from . import metrics
 from .mock_llm import FakeLLM
 from .mock_rag import retrieve
 from .pii import hash_user_id, scrub_text, summarize_text
-from .tracing import langfuse_context, observe
+from .tracing import observe, trace_attributes, update_current_span
 
 
 @dataclass
@@ -25,46 +25,58 @@ class LabAgent:
         self.model = model
         self.llm = FakeLLM(model=model)
 
-    @observe(capture_input=False, capture_output=False)
+    @observe(name="chat-response", capture_input=False, capture_output=False)
     def run(self, user_id: str, feature: str, session_id: str, message: str) -> AgentResult:
         started = time.perf_counter()
-        docs = retrieve(message)
-        prompt = f"Feature={feature}\nDocs={docs}\nQuestion={message}"
-        response = self.llm.generate(prompt)
-        quality_score = self._heuristic_quality(message, response.text, docs)
-        latency_ms = int((time.perf_counter() - started) * 1000)
-        cost_usd = self._estimate_cost(response.usage.input_tokens, response.usage.output_tokens)
-
-        langfuse_context.update_current_trace(
+        safe_feature = scrub_text(feature)[:64]
+        update_current_span(
+            input={"query_preview": summarize_text(message), "feature": safe_feature},
+        )
+        with trace_attributes(
+            trace_name="chat-response",
             user_id=hash_user_id(user_id),
             session_id=hash_user_id(session_id),
-            tags=["lab", scrub_text(feature), self.model],
-        )
-        langfuse_context.update_current_observation(
-            metadata={
-                "doc_count": len(docs),
-                "query_preview": summarize_text(message),
-                "answer_preview": summarize_text(response.text),
-            },
-            usage_details={"input": response.usage.input_tokens, "output": response.usage.output_tokens},
-        )
+            tags=["lab", safe_feature, self.model],
+            metadata={"feature": safe_feature, "model": self.model},
+        ):
+            docs = retrieve(message)
+            prompt = f"Feature={feature}\nDocs={docs}\nQuestion={message}"
+            response = self.llm.generate(prompt)
+            quality_score = self._heuristic_quality(message, response.text, docs)
+            latency_ms = int((time.perf_counter() - started) * 1000)
+            cost_usd = self._estimate_cost(
+                response.usage.input_tokens,
+                response.usage.output_tokens,
+            )
 
-        metrics.record_request(
-            latency_ms=latency_ms,
-            cost_usd=cost_usd,
-            tokens_in=response.usage.input_tokens,
-            tokens_out=response.usage.output_tokens,
-            quality_score=quality_score,
-        )
+            metrics.record_request(
+                latency_ms=latency_ms,
+                cost_usd=cost_usd,
+                tokens_in=response.usage.input_tokens,
+                tokens_out=response.usage.output_tokens,
+                quality_score=quality_score,
+            )
 
-        return AgentResult(
-            answer=response.text,
-            latency_ms=latency_ms,
-            tokens_in=response.usage.input_tokens,
-            tokens_out=response.usage.output_tokens,
-            cost_usd=cost_usd,
-            quality_score=quality_score,
-        )
+            result = AgentResult(
+                answer=response.text,
+                latency_ms=latency_ms,
+                tokens_in=response.usage.input_tokens,
+                tokens_out=response.usage.output_tokens,
+                cost_usd=cost_usd,
+                quality_score=quality_score,
+            )
+            update_current_span(
+                output={
+                    "answer_preview": summarize_text(response.text),
+                    "quality_score": quality_score,
+                },
+                metadata={
+                    "doc_count": str(len(docs)),
+                    "latency_ms": str(latency_ms),
+                    "cost_usd": f"{cost_usd:.6f}",
+                },
+            )
+            return result
 
     def _estimate_cost(self, tokens_in: int, tokens_out: int) -> float:
         input_cost = (tokens_in / 1_000_000) * 3

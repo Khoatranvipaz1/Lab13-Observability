@@ -19,7 +19,8 @@ recorded below.
 ### Missing trace waterfall structure
 
 - Added child observations for retrieval and fake LLM generation.
-- Parent observation remains `LabAgent.run`.
+- Root observation is `chat-response`, with `knowledge-retrieval` and
+  `fake-llm-generation` children.
 
 ### Incorrect dashboard time-window claim
 
@@ -61,7 +62,7 @@ recorded below.
 
 ## Verified Results
 
-- Automated tests: `14 passed`
+- Automated tests: `15 passed`
 - Quality/safety eval: `7/7 passed`
 - Log validator: `100/100`
 - JSON Schema failures: `0`
@@ -70,9 +71,5 @@ recorded below.
 - Alert evaluator: latency, error, and cost checks implemented
 - Contributor record: `CONTRIBUTORS.md`
 - Cost report: `docs/evidence/eval-cost-report.md`
-
-## Remaining External Blocker
-
-The instructor rubric requires at least 10 live Langfuse traces and a waterfall
-screenshot. The local `.env` still has empty Langfuse keys. This cannot be
-truthfully completed without valid external credentials.
+- Langfuse: `34` root traces and `124` observations verified
+- Concurrent load run: `10/10` requests completed successfully

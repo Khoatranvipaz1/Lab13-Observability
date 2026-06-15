@@ -1,30 +1,31 @@
-# Day 13 Observability Lab Report
+# Day 13 Observability Lab - Individual Submission Report
 
 > Automated grading tags are intentionally preserved.
 
-## 1. Team Metadata
+## 1. Student Metadata
 
-- [GROUP_NAME]: TVKhoa
+- [GROUP_NAME]: Individual submission - Trần Văn Khoa
 - [REPO_URL]: https://github.com/Khoatranvipaz1/Lab13-Observability
 - [MEMBERS]:
-  - Khoatranvipaz1 (TVKhoa) | Full implementation owner
+  - Trần Văn Khoa | MSV: 2A202600827 | GitHub: Khoatranvipaz1 |
+    Full implementation owner
 
-The repository was completed as a one-member submission. Ownership and commit
+This is an individual submission. Trần Văn Khoa designed, implemented,
+tested, documented, and demonstrated the complete lab. Ownership and commit
 evidence are recorded in `CONTRIBUTORS.md`.
 
 ## 2. Verified Results
 
 - [VALIDATE_LOGS_FINAL_SCORE]: 100/100
-- [TOTAL_TRACES_COUNT]: 0
+- [TOTAL_TRACES_COUNT]: 34 root traces / 124 observations
 - [PII_LEAKS_FOUND]: 0
 - [QUALITY_EVAL_PASS_RATE]: 100% (7/7)
 - [EVAL_COST_USD]: $0.002991 (simulated)
-- [AUTOMATED_TESTS]: 14 passed
+- [AUTOMATED_TESTS]: 15 passed
 - [ALERT_EVALUATION]: PASS (4/4 scenarios)
 
-The trace count is zero because `LANGFUSE_PUBLIC_KEY` and
-`LANGFUSE_SECRET_KEY` are not configured. No trace evidence is claimed without
-live credentials.
+The final Langfuse evidence shows 34 root traces and 124 observations,
+including a clean batch of 10 concurrent requests.
 
 ## 3. Technical Implementation
 
@@ -37,7 +38,7 @@ The middleware clears previous context, binds the current ID, and returns both
 Chat logs include:
 
 - hashed user ID
-- session ID
+- hashed session ID
 - feature
 - model
 - environment
@@ -65,17 +66,19 @@ Incident-control events are duplicated to `data/audit.jsonl`.
 
 ### 3.3 Tracing
 
-The intended Langfuse waterfall contains:
+The verified Langfuse waterfall contains:
 
-1. `LabAgent.run` parent observation
-2. `retrieve` child observation
-3. `fake_llm_generate` child observation
+1. `chat-response` root observation
+2. `knowledge-retrieval` child span
+3. `fake-llm-generation` child generation
 
 Automatic raw input/output capture is disabled. User and session identifiers
 are hashed, while query and answer previews are sanitized.
 
 - [EVIDENCE_TRACE_WATERFALL_SCREENSHOT]:
-  Not available because Langfuse credentials are empty
+  `docs/evidence/langfuse-waterfall.png`
+- [EVIDENCE_TRACE_LIST_SCREENSHOT]:
+  `docs/evidence/langfuse-trace-list.png`
 - [TRACE_WATERFALL_EXPLANATION]:
   The parent observation represents the full agent request. Child observations
   separate retrieval from generation so latency or failures can be localized.
@@ -159,12 +162,16 @@ Evidence: `docs/evidence/eval-cost-report.md`.
   Alert on error rate, group logs by `error_type`, protect incident controls,
   and add retrieval fallback or circuit-breaker behavior.
 
-The debug sequence was Metrics -> Logs, with the trace stage prepared but not
-available live because Langfuse credentials are absent.
+The completed workflow supports Metrics -> Traces -> Logs. Langfuse localizes
+the retrieval and generation stages, while scrubbed logs provide request-level
+diagnostic detail.
 
-## 6. Individual Contribution
+## 6. Individual Ownership
 
-### Khoatranvipaz1 (TVKhoa)
+### Trần Văn Khoa - 2A202600827
+
+- [GITHUB_ACCOUNT]: `Khoatranvipaz1`
+- [BRANCH]: `TVKhoa`
 
 - [TASKS_COMPLETED]:
   Correlation middleware, structured logging, PII protection, safe tracing,
@@ -193,19 +200,15 @@ available live because Langfuse credentials are absent.
 Completed:
 
 - local implementation
-- 14 automated tests
+- 15 automated tests
 - validator score 100/100
 - zero detected PII leaks
 - six-panel dashboard
 - alert evaluation
 - incident drill
-- individual and group reports
+- individual submission report
 - Git contribution evidence
 
-External blocker:
-
-- minimum 10 live Langfuse traces
-- trace-list screenshot
-- full waterfall screenshot
-
-These three items require valid Langfuse credentials in `.env`.
+- 34 live Langfuse root traces
+- trace-list evidence
+- full trace waterfall evidence

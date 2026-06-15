@@ -1,4 +1,8 @@
+import os
+
 import pytest
+
+os.environ["LANGFUSE_TRACING_ENABLED"] = "false"
 
 from app import incidents, logging_config, metrics
 

@@ -20,7 +20,7 @@ from .metrics import record_error, snapshot
 from .middleware import CorrelationIdMiddleware
 from .pii import hash_user_id, summarize_text
 from .schemas import ChatRequest, ChatResponse
-from .tracing import tracing_enabled
+from .tracing import flush_traces, tracing_enabled
 
 configure_logging()
 log = get_logger()
@@ -37,7 +37,10 @@ async def lifespan(_: FastAPI):
         correlation_id="system",
         payload={"tracing_enabled": tracing_enabled()},
     )
-    yield
+    try:
+        yield
+    finally:
+        flush_traces()
 
 
 app = FastAPI(title="Day 13 Observability Lab", lifespan=lifespan)
@@ -83,7 +86,7 @@ def _authorize_incident(request: Request, admin_token: str | None) -> None:
 async def chat(request: Request, body: ChatRequest) -> ChatResponse:
     bind_contextvars(
         user_id_hash=hash_user_id(body.user_id),
-        session_id=body.session_id,
+        session_id=hash_user_id(body.session_id),
         feature=body.feature,
         model=agent.model,
         env=os.getenv("APP_ENV", "dev"),

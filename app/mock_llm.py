@@ -4,7 +4,8 @@ import time
 from dataclasses import dataclass
 
 from .incidents import STATE
-from .tracing import observe
+from .pii import summarize_text
+from .tracing import observe, update_current_generation
 
 
 @dataclass
@@ -24,8 +25,17 @@ class FakeLLM:
     def __init__(self, model: str = "claude-sonnet-4-5") -> None:
         self.model = model
 
-    @observe(name="fake_llm_generate", capture_input=False, capture_output=False)
+    @observe(
+        name="fake-llm-generation",
+        as_type="generation",
+        capture_input=False,
+        capture_output=False,
+    )
     def generate(self, prompt: str) -> FakeResponse:
+        update_current_generation(
+            model=self.model,
+            input={"prompt_preview": summarize_text(prompt)},
+        )
         time.sleep(0.15)
         input_tokens = max(20, len(prompt) // 4)
         lowered = prompt.lower()
@@ -64,4 +74,12 @@ class FakeLLM:
         output_tokens = max(8, len(answer) // 4)
         if STATE["cost_spike"]:
             output_tokens *= 4
+        update_current_generation(
+            model=self.model,
+            output={"answer_preview": summarize_text(answer)},
+            usage_details={
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+            },
+        )
         return FakeResponse(text=answer, usage=FakeUsage(input_tokens, output_tokens), model=self.model)

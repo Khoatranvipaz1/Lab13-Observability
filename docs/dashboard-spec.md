@@ -18,4 +18,4 @@ Quality bar:
 
 Implementation: `http://127.0.0.1:8000/dashboard`
 
-Evidence: `docs/evidence/dashboard.png`
+Evidence: `docs/evidence/dashboard.png`.

@@ -9,6 +9,7 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.agent import LabAgent
+from app.tracing import flush_traces
 
 DATASET_PATH = Path("data/expected_answers.jsonl")
 JSON_OUTPUT = Path("docs/evidence/eval-cost-report.json")
@@ -144,4 +145,7 @@ Full answers and phrase-level checks are available in
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    finally:
+        flush_traces()

@@ -1,8 +1,10 @@
-# Individual Report - TVKhoa
+# Individual Report - Trần Văn Khoa
 
 ## Identity
 
-- Contributor: Khoatranvipaz1 (TVKhoa)
+- Full name: Trần Văn Khoa
+- Student ID (MSV): `2A202600827`
+- GitHub account: `Khoatranvipaz1`
 - Git email: `khoatranvippro@gmail.com`
 - Branch: `TVKhoa`
 - Repository: https://github.com/Khoatranvipaz1/Lab13-Observability
@@ -13,7 +15,7 @@
 
 | Check | Result |
 |---|---:|
-| Automated tests | 14 passed |
+| Automated tests | 15 passed |
 | Log validator | 100/100 |
 | JSON Schema failures | 0 |
 | PII leaks | 0 |
@@ -34,7 +36,7 @@ I implemented request-level correlation in `CorrelationIdMiddleware`.
 - the ID is bound to `structlog.contextvars`
 - response headers include request ID and processing time
 
-The `/chat` endpoint binds hashed user ID, session ID, feature, model, and
+The `/chat` endpoint binds hashed user and session IDs, feature, model, and
 environment. Chat-specific context is removed in a `finally` block.
 
 ### Structured Logging and PII Protection
@@ -53,18 +55,21 @@ email syntax and nested payloads.
 
 ### Safe Tracing
 
-I implemented Langfuse-compatible parent and child observations:
+I implemented Langfuse SDK v4 parent and child observations:
 
-- `LabAgent.run`
-- `retrieve`
-- `fake_llm_generate`
+- `chat-response`
+- `knowledge-retrieval`
+- `fake-llm-generation`
 
 Automatic input and output capture is disabled to prevent raw PII from being
 sent to Langfuse. User and session identifiers are hashed. Query and answer
 previews are sanitized before attachment.
 
-Without credentials, the tracing layer becomes a no-op so local execution does
-not emit authentication errors.
+The final Langfuse US evidence shows 34 root traces and 124 observations,
+including a clean batch of 10 concurrent requests. Traces include retrieval
+and generation, model, latency, token usage, estimated cost, hashed
+user/session IDs, tags, and sanitized previews. Without credentials, the
+tracing layer safely becomes a no-op.
 
 ### Rolling Metrics and Dashboard
 
@@ -152,8 +157,8 @@ For the `tool_fail` drill:
 5. The authenticated incident script disabled the failure.
 6. `/health` confirmed that all incident toggles were false.
 
-The Langfuse trace stage is implemented but could not be demonstrated live
-without credentials.
+The Langfuse trace waterfall verifies the retrieval and generation stages,
+including token usage and estimated cost.
 
 ## Oral Review Notes
 
@@ -200,9 +205,5 @@ explicit pricing assumption.
 - `docs/evidence/alert-evaluation-report.md`
 - `docs/evidence/dashboard.png`
 - `docs/evidence/technical-evidence.png`
-
-## Remaining External Requirement
-
-The rubric requires at least 10 live Langfuse traces plus trace-list and
-waterfall screenshots. These cannot be truthfully produced until valid
-Langfuse credentials are added to `.env`.
+- `docs/evidence/langfuse-trace-list.png`
+- `docs/evidence/langfuse-waterfall.png`

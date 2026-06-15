@@ -2,9 +2,10 @@
 
 ## Five-Minute Demo
 
-1. Start the app with `python -m uvicorn app.main:app --reload`.
+1. Start the app with
+   `python -m uvicorn app.main:app --host 127.0.0.1 --port 8000`.
 2. Open `/health` and show incident state plus tracing status.
-3. Run `python scripts/load_test.py --concurrency 5`.
+3. Run `python scripts/load_test.py --concurrency 10` and show `10/10`.
 4. Open `/dashboard` and explain the six panels and SLO thresholds.
 5. Open `data/logs.jsonl` and filter one `correlation_id`.
 6. Show `[REDACTED_EMAIL]` and `[REDACTED_CREDIT_CARD]` in log previews.
@@ -12,7 +13,8 @@
 8. Use the `request_failed` log to prove `Vector store timeout`.
 9. Open `/alerts/status` and show `high_error_rate` active.
 10. Disable the incident and verify `/health`.
-11. Run `python scripts/validate_logs.py` and show `100/100`.
+11. Open Langfuse and show the concurrent root traces plus one waterfall.
+12. Run `python scripts/validate_logs.py` and show `100/100`.
 
 ## Architecture Explanation
 
@@ -74,5 +76,7 @@ and incident workflow remain functional without emitting authentication errors.
 
 ### What changes when credentials are added?
 
-`LabAgent.run` is observed and publishes trace metadata, tags, sanitized query
-preview, document count, and token usage to the configured Langfuse host.
+`chat-response` is the root observation. It publishes tags, sanitized
+input/output, hashed identifiers, latency, quality, and cost metadata.
+`knowledge-retrieval` and `fake-llm-generation` are nested children; the
+generation records model and token usage.

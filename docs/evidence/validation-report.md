@@ -4,7 +4,7 @@ Generated on June 15, 2026.
 
 ## Automated Tests
 
-- Result: `14 passed`
+- Result: `15 passed`
 - Test areas:
   - correlation ID propagation
   - response timing headers
@@ -12,7 +12,7 @@ Generated on June 15, 2026.
   - recursive PII redaction
   - dashboard availability
   - percentile and error-rate metrics
-  - Langfuse v3 adapter compatibility
+  - Langfuse SDK v4 helpers and trace propagation
   - expected-answer quality cases
 
 ## Quality and Cost Eval
@@ -38,14 +38,12 @@ Generated on June 15, 2026.
 
 ## Clean 10-Request Load Run
 
-- Successful requests: `10`
-- Latency P50/P95/P99: `150/150/150 ms`
-- Input tokens: `340`
-- Output tokens: `241`
-- Total simulated cost: `$0.004635`
-- Average simulated cost per request: `$0.000463`
-- Error rate: `0%`
-- Average quality proxy: `0.89`
+- Concurrency: `10`
+- Successful requests: `10/10`
+- HTTP status: all `200`
+- Correlation IDs: unique per request
+- Script termination: clean, without manual interruption
+- Langfuse: one root trace per concurrent request
 
 ## Incident Drill
 
@@ -63,8 +61,5 @@ Generated on June 15, 2026.
 - Correlation, PII, error, and alert evidence:
   `docs/evidence/technical-evidence.png`
 - Separate audit trail: `data/audit.jsonl`
-
-## External Blocker
-
-Langfuse keys are empty in the local `.env`, so the required 10 live cloud
-traces and trace-waterfall screenshot cannot be generated yet.
+- Langfuse trace list: `docs/evidence/langfuse-trace-list.png`
+- Langfuse waterfall: `docs/evidence/langfuse-waterfall.png`

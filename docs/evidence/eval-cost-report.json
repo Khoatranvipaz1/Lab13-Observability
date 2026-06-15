@@ -28,7 +28,7 @@
       },
       "negative_matches": {},
       "passed": true,
-      "latency_ms": 150,
+      "latency_ms": 152,
       "tokens_in": 29,
       "tokens_out": 14,
       "cost_usd": 0.000297,

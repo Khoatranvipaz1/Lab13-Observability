@@ -1,8 +1,14 @@
 # Evidence Collection Sheet
 
+## Submission identity
+
+- Student: Trần Văn Khoa
+- Student ID (MSV): `2A202600827`
+- GitHub account: `Khoatranvipaz1`
+
 ## Required screenshots
-- [ ] Langfuse trace list with >= 10 traces (blocked: credentials are empty in `.env`)
-- [ ] One full trace waterfall (blocked: credentials are empty in `.env`)
+- [x] Langfuse trace list with 34 root traces: `docs/evidence/langfuse-trace-list.png`
+- [x] Full trace waterfall: `docs/evidence/langfuse-waterfall.png`
 - [x] JSON logs showing correlation_id: `docs/evidence/technical-evidence.png`
 - [x] Log line with PII redaction: `docs/evidence/technical-evidence.png`
 - [x] Dashboard with 6 panels: `docs/evidence/dashboard.png`

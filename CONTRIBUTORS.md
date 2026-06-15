@@ -1,7 +1,9 @@
 # Contributors
 
-## Khoatranvipaz1 (TVKhoa)
+## Trần Văn Khoa
 
+- Student ID (MSV): `2A202600827`
+- GitHub account: `Khoatranvipaz1`
 - Git email: `khoatranvippro@gmail.com`
 - Branch: `TVKhoa`
 - Role: full implementation owner
@@ -10,10 +12,10 @@
   - structured logging and enrichment
   - recursive PII redaction
   - metrics, quality evaluation, and cost estimation
-  - Langfuse-compatible tracing adapter
+  - Langfuse SDK v4 tracing, propagation, and generation telemetry
   - SLOs, alerts, runbook, and incident drill
   - six-panel dashboard
-  - automated tests, evidence, individual report, and group report
+  - automated tests, evidence, and all individual submission reports
 - Primary commits:
   - `29fe1ae` - core observability implementation
   - `a313ef4` - dashboard, evidence, reports, and final lab packaging

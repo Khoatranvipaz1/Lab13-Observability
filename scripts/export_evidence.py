@@ -26,14 +26,19 @@ def _pretty(value: object) -> str:
 
 def main() -> None:
     records = _read_logs()
-    api_record = next(record for record in records if record.get("service") == "api")
+    newest_first = list(reversed(records))
+    api_record = next(
+        record for record in newest_first if record.get("service") == "api"
+    )
     pii_record = next(
-        record for record in records if "[REDACTED_" in json.dumps(record, ensure_ascii=False)
+        record
+        for record in newest_first
+        if "[REDACTED_" in json.dumps(record, ensure_ascii=False)
     )
     error_record = next(
         (
             record
-            for record in records
+            for record in newest_first
             if record.get("event") == "request_failed"
         ),
         {"event": "No error sample in current log file"},
