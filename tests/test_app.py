@@ -1,5 +1,6 @@
 import json
 import importlib
+from pathlib import Path
 
 from fastapi.testclient import TestClient
 
@@ -90,3 +91,97 @@ def test_langfuse_v3_adapter_moves_usage_into_metadata(monkeypatch) -> None:
     monkeypatch.delenv("LANGFUSE_PUBLIC_KEY")
     monkeypatch.delenv("LANGFUSE_SECRET_KEY")
     importlib.reload(tracing)
+
+
+def test_agent_answers_expected_eval_phrases() -> None:
+    from app.agent import LabAgent
+
+    agent = LabAgent()
+    cases = [
+        json.loads(line)
+        for line in Path("data/expected_answers.jsonl")
+        .read_text(encoding="utf-8")
+        .splitlines()
+        if line.strip()
+    ]
+
+    for index, case in enumerate(cases):
+        result = agent.run(
+            user_id=f"test-{index}",
+            feature="qa",
+            session_id=f"test-session-{index}",
+            message=case["question"],
+        )
+        answer = result.answer.lower()
+        assert all(
+            phrase.lower() in answer for phrase in case["must_include"]
+        )
+        assert all(
+            phrase.lower() not in answer
+            for phrase in case.get("must_not_include", [])
+        )
+
+
+def test_incident_control_requires_token() -> None:
+    with TestClient(app) as client:
+        unauthorized = client.post("/incidents/tool_fail/enable")
+        authorized = client.post(
+            "/incidents/tool_fail/enable",
+            headers={"x-admin-token": "test-admin-token"},
+        )
+        health = client.get("/health")
+
+    assert unauthorized.status_code == 401
+    assert authorized.status_code == 200
+    assert health.json()["incidents"]["tool_fail"] is True
+
+
+def test_alert_status_reports_active_error_alert() -> None:
+    from app import metrics
+
+    metrics.record_request(6001, 0.011, 10, 20, 0.8)
+    metrics.record_error("RuntimeError")
+    with TestClient(app) as client:
+        response = client.get("/alerts/status")
+
+    assert response.status_code == 200
+    payload = response.json()
+    high_error = next(
+        alert for alert in payload["alerts"] if alert["name"] == "high_error_rate"
+    )
+    high_latency = next(
+        alert for alert in payload["alerts"] if alert["name"] == "high_latency_p95"
+    )
+    cost_spike = next(
+        alert for alert in payload["alerts"] if alert["name"] == "cost_budget_spike"
+    )
+    assert high_error["active"] is True
+    assert high_latency["active"] is True
+    assert cost_spike["active"] is True
+
+
+def test_agent_explicit_trace_metadata_does_not_contain_raw_pii(monkeypatch) -> None:
+    from app import agent as agent_module
+
+    calls = []
+
+    class FakeContext:
+        def update_current_trace(self, **kwargs):
+            calls.append(kwargs)
+
+        def update_current_observation(self, **kwargs):
+            calls.append(kwargs)
+
+    monkeypatch.setattr(agent_module, "langfuse_context", FakeContext())
+    result = agent_module.LabAgent().run(
+        user_id="student@example.com",
+        feature="qa",
+        session_id="private-session",
+        message="My email is student@example.com. What is the refund policy?",
+    )
+
+    serialized = json.dumps(calls)
+    assert result.answer
+    assert "student@example.com" not in serialized
+    assert "private-session" not in serialized
+    assert "[REDACTED_EMAIL]" in serialized

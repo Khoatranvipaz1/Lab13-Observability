@@ -1,0 +1,159 @@
+{
+  "passed": true,
+  "scenarios": {
+    "normal": {
+      "metrics": {
+        "latency_p95": 150,
+        "error_rate_pct": 0,
+        "hourly_cost_usd": 0.004
+      },
+      "active_alerts": [],
+      "alerts": [
+        {
+          "name": "high_latency_p95",
+          "severity": "P2",
+          "active": false,
+          "value": 150,
+          "threshold": 5000,
+          "unit": "ms",
+          "runbook": "docs/alerts.md#1-high-latency-p95"
+        },
+        {
+          "name": "high_error_rate",
+          "severity": "P1",
+          "active": false,
+          "value": 0,
+          "threshold": 5,
+          "unit": "percent",
+          "runbook": "docs/alerts.md#2-high-error-rate"
+        },
+        {
+          "name": "cost_budget_spike",
+          "severity": "P2",
+          "active": false,
+          "value": 0.004,
+          "threshold": 0.01,
+          "unit": "USD/hour",
+          "runbook": "docs/alerts.md#3-cost-budget-spike"
+        }
+      ]
+    },
+    "latency_breach": {
+      "metrics": {
+        "latency_p95": 6001,
+        "error_rate_pct": 0,
+        "hourly_cost_usd": 0.004
+      },
+      "active_alerts": [
+        "high_latency_p95"
+      ],
+      "alerts": [
+        {
+          "name": "high_latency_p95",
+          "severity": "P2",
+          "active": true,
+          "value": 6001,
+          "threshold": 5000,
+          "unit": "ms",
+          "runbook": "docs/alerts.md#1-high-latency-p95"
+        },
+        {
+          "name": "high_error_rate",
+          "severity": "P1",
+          "active": false,
+          "value": 0,
+          "threshold": 5,
+          "unit": "percent",
+          "runbook": "docs/alerts.md#2-high-error-rate"
+        },
+        {
+          "name": "cost_budget_spike",
+          "severity": "P2",
+          "active": false,
+          "value": 0.004,
+          "threshold": 0.01,
+          "unit": "USD/hour",
+          "runbook": "docs/alerts.md#3-cost-budget-spike"
+        }
+      ]
+    },
+    "error_breach": {
+      "metrics": {
+        "latency_p95": 150,
+        "error_rate_pct": 10,
+        "hourly_cost_usd": 0.004
+      },
+      "active_alerts": [
+        "high_error_rate"
+      ],
+      "alerts": [
+        {
+          "name": "high_latency_p95",
+          "severity": "P2",
+          "active": false,
+          "value": 150,
+          "threshold": 5000,
+          "unit": "ms",
+          "runbook": "docs/alerts.md#1-high-latency-p95"
+        },
+        {
+          "name": "high_error_rate",
+          "severity": "P1",
+          "active": true,
+          "value": 10,
+          "threshold": 5,
+          "unit": "percent",
+          "runbook": "docs/alerts.md#2-high-error-rate"
+        },
+        {
+          "name": "cost_budget_spike",
+          "severity": "P2",
+          "active": false,
+          "value": 0.004,
+          "threshold": 0.01,
+          "unit": "USD/hour",
+          "runbook": "docs/alerts.md#3-cost-budget-spike"
+        }
+      ]
+    },
+    "cost_breach": {
+      "metrics": {
+        "latency_p95": 150,
+        "error_rate_pct": 0,
+        "hourly_cost_usd": 0.011
+      },
+      "active_alerts": [
+        "cost_budget_spike"
+      ],
+      "alerts": [
+        {
+          "name": "high_latency_p95",
+          "severity": "P2",
+          "active": false,
+          "value": 150,
+          "threshold": 5000,
+          "unit": "ms",
+          "runbook": "docs/alerts.md#1-high-latency-p95"
+        },
+        {
+          "name": "high_error_rate",
+          "severity": "P1",
+          "active": false,
+          "value": 0,
+          "threshold": 5,
+          "unit": "percent",
+          "runbook": "docs/alerts.md#2-high-error-rate"
+        },
+        {
+          "name": "cost_budget_spike",
+          "severity": "P2",
+          "active": true,
+          "value": 0.011,
+          "threshold": 0.01,
+          "unit": "USD/hour",
+          "runbook": "docs/alerts.md#3-cost-budget-spike"
+        }
+      ]
+    }
+  }
+}

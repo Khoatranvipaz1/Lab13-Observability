@@ -10,8 +10,9 @@
 6. Show `[REDACTED_EMAIL]` and `[REDACTED_CREDIT_CARD]` in log previews.
 7. Enable `tool_fail`, send requests, and show the error-rate increase.
 8. Use the `request_failed` log to prove `Vector store timeout`.
-9. Disable the incident and verify `/health`.
-10. Run `python scripts/validate_logs.py` and show `100/100`.
+9. Open `/alerts/status` and show `high_error_rate` active.
+10. Disable the incident and verify `/health`.
+11. Run `python scripts/validate_logs.py` and show `100/100`.
 
 ## Architecture Explanation
 
@@ -21,9 +22,10 @@ and environment context. The logging pipeline timestamps the event, recursively
 scrubs PII, optionally writes audit events, writes JSONL, and renders JSON to
 the console.
 
-The agent records latency, tokens, cost, and quality. These values feed the
-dashboard and are also attached to Langfuse observations when credentials are
-configured.
+The agent records latency, tokens, cost, and quality in rolling windows. These
+values feed the dashboard and alert evaluator and are also attached to Langfuse
+observations when credentials are configured. Automatic trace input/output
+capture is disabled; only sanitized previews and hashed identifiers are sent.
 
 ## Likely Questions
 

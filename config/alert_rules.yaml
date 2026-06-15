@@ -1,4 +1,6 @@
 alerts:
+  # The local /alerts/status evaluator reports threshold state immediately.
+  # Production alert managers should apply the documented "for" durations.
   - name: high_latency_p95
     severity: P2
     condition: latency_p95_ms > 5000 for 30m

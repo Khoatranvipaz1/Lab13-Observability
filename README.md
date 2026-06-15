@@ -35,10 +35,12 @@ source .venv/bin/activate
 # Windows PowerShell: .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 # Update configuration values in .env
+# Keep INCIDENT_ADMIN_TOKEN private; incident endpoints are local/dev only.
 uvicorn app.main:app --reload
 ```
 
 Open `http://127.0.0.1:8000/dashboard` for the six-panel dashboard.
+Open `http://127.0.0.1:8000/alerts/status` for evaluated alert state.
 
 ## Tooling
 
@@ -54,6 +56,12 @@ python scripts/validate_logs.py
 
 # Generate reproducible HTML evidence from logs and alert config
 python scripts/export_evidence.py
+
+# Run answer-quality evaluation and simulated token/cost analysis
+python scripts/run_eval.py
+
+# Verify that each alert threshold activates the expected rule
+python scripts/evaluate_alerts.py
 ```
 
 ## Repo map

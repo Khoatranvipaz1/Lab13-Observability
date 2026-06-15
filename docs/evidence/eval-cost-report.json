@@ -1,0 +1,158 @@
+{
+  "dataset": "data\\expected_answers.jsonl",
+  "model": "claude-sonnet-4-5",
+  "pricing_assumption": {
+    "input_usd_per_million_tokens": 3,
+    "output_usd_per_million_tokens": 15
+  },
+  "cases_total": 7,
+  "cases_passed": 7,
+  "pass_rate_pct": 100.0,
+  "tokens_in_total": 217,
+  "tokens_out_total": 156,
+  "evaluated_cost_usd": 0.002991,
+  "starter_estimated_cost_usd": 0.014301,
+  "estimated_cost_reduction_pct": 79.09,
+  "starter_baseline_note": "The original FakeLLM sampled 80-180 output tokens. The midpoint, 130 tokens, is used as the reproducible baseline.",
+  "cases": [
+    {
+      "question": "What is your refund policy?",
+      "answer": "Refunds are available within 7 days with proof of purchase.",
+      "must_include": [
+        "7 days",
+        "proof of purchase"
+      ],
+      "matches": {
+        "7 days": true,
+        "proof of purchase": true
+      },
+      "negative_matches": {},
+      "passed": true,
+      "latency_ms": 150,
+      "tokens_in": 29,
+      "tokens_out": 14,
+      "cost_usd": 0.000297,
+      "starter_estimated_cost_usd": 0.002037
+    },
+    {
+      "question": "Explain why metrics traces and logs work together",
+      "answer": "Metrics detect incidents, traces localize the failing operation, and logs explain the root cause.",
+      "must_include": [
+        "metrics",
+        "traces",
+        "logs"
+      ],
+      "matches": {
+        "metrics": true,
+        "traces": true,
+        "logs": true
+      },
+      "negative_matches": {},
+      "passed": true,
+      "latency_ms": 150,
+      "tokens_in": 33,
+      "tokens_out": 24,
+      "cost_usd": 0.000459,
+      "starter_estimated_cost_usd": 0.002049
+    },
+    {
+      "question": "What should not appear in app logs?",
+      "answer": "PII and other sensitive data should not appear in application logs. Log only sanitized summaries.",
+      "must_include": [
+        "PII",
+        "sensitive"
+      ],
+      "matches": {
+        "PII": true,
+        "sensitive": true
+      },
+      "negative_matches": {},
+      "passed": true,
+      "latency_ms": 150,
+      "tokens_in": 30,
+      "tokens_out": 24,
+      "cost_usd": 0.00045,
+      "starter_estimated_cost_usd": 0.00204
+    },
+    {
+      "question": "A customer wants their money back. What evidence and deadline apply?",
+      "answer": "Refunds are available within 7 days with proof of purchase.",
+      "must_include": [
+        "7 days",
+        "proof of purchase"
+      ],
+      "matches": {
+        "7 days": true,
+        "proof of purchase": true
+      },
+      "negative_matches": {},
+      "passed": true,
+      "latency_ms": 150,
+      "tokens_in": 38,
+      "tokens_out": 14,
+      "cost_usd": 0.000324,
+      "starter_estimated_cost_usd": 0.002064
+    },
+    {
+      "question": "How do I investigate tail latency?",
+      "answer": "Use P95 and P99 metrics to detect tail latency, then inspect the slowest traces and their correlated logs.",
+      "must_include": [
+        "P95",
+        "P99",
+        "traces"
+      ],
+      "matches": {
+        "P95": true,
+        "P99": true,
+        "traces": true
+      },
+      "negative_matches": {},
+      "passed": true,
+      "latency_ms": 150,
+      "tokens_in": 30,
+      "tokens_out": 26,
+      "cost_usd": 0.00048,
+      "starter_estimated_cost_usd": 0.00204
+    },
+    {
+      "question": "How should alerts be designed?",
+      "answer": "Alerts should be symptom-based, tied to an SLO threshold, assigned an owner, and linked to a tested runbook.",
+      "must_include": [
+        "SLO",
+        "owner",
+        "runbook"
+      ],
+      "matches": {
+        "SLO": true,
+        "owner": true,
+        "runbook": true
+      },
+      "negative_matches": {},
+      "passed": true,
+      "latency_ms": 150,
+      "tokens_in": 29,
+      "tokens_out": 27,
+      "cost_usd": 0.000492,
+      "starter_estimated_cost_usd": 0.002037
+    },
+    {
+      "question": "What is the capital of Mars?",
+      "answer": "There is not enough domain context to answer this question safely. Please provide an approved knowledge source.",
+      "must_include": [
+        "not enough domain context"
+      ],
+      "matches": {
+        "not enough domain context": true
+      },
+      "negative_matches": {
+        "Olympus Mons is the capital": true
+      },
+      "passed": true,
+      "latency_ms": 150,
+      "tokens_in": 28,
+      "tokens_out": 27,
+      "cost_usd": 0.000489,
+      "starter_estimated_cost_usd": 0.002034
+    }
+  ]
+}

@@ -2,8 +2,16 @@ import json
 import sys
 from pathlib import Path
 
+from jsonschema import Draft202012Validator
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+from app.pii import detect_pii
+
 LOG_PATH = Path("data/logs.jsonl")
-REQUIRED_FIELDS = {"ts", "level", "service", "event", "correlation_id"}
+SCHEMA_PATH = Path("config/logging_schema.json")
 ENRICHMENT_FIELDS = {"user_id_hash", "session_id", "feature", "model"}
 
 def main() -> None:
@@ -25,28 +33,33 @@ def main() -> None:
         sys.exit(1)
 
     total = len(records)
-    missing_required = 0
+    schema_errors = 0
     missing_enrichment = 0
     pii_hits = []
     correlation_ids = set()
+    validator = Draft202012Validator(
+        json.loads(SCHEMA_PATH.read_text(encoding="utf-8"))
+    )
 
     for rec in records:
-        # Check required fields (global)
-        if not {"ts", "level", "event"}.issubset(rec.keys()):
-            missing_required += 1
+        errors = list(validator.iter_errors(rec))
+        if errors:
+            schema_errors += 1
             
         # Context-specific checks for API requests
         if rec.get("service") == "api":
             if "correlation_id" not in rec or rec.get("correlation_id") == "MISSING":
-                missing_required += 1
+                schema_errors += 1
             
             if not ENRICHMENT_FIELDS.issubset(rec.keys()):
                 missing_enrichment += 1
 
-        # Check PII (naive check for @ or common test credit card)
-        raw = json.dumps(rec)
-        if "@" in raw or "4111" in raw:
-            pii_hits.append(rec.get("event", "unknown"))
+        raw = json.dumps(rec, ensure_ascii=False)
+        pii_types = detect_pii(raw)
+        if pii_types:
+            pii_hits.append(
+                {"event": rec.get("event", "unknown"), "types": pii_types}
+            )
 
         # Collect correlation IDs
         cid = rec.get("correlation_id")
@@ -55,18 +68,18 @@ def main() -> None:
 
     print("--- Lab Verification Results ---")
     print(f"Total log records analyzed: {total}")
-    print(f"Records with missing required fields: {missing_required}")
+    print(f"Records failing JSON Schema: {schema_errors}")
     print(f"Records with missing enrichment (context): {missing_enrichment}")
     print(f"Unique correlation IDs found: {len(correlation_ids)}")
     print(f"Potential PII leaks detected: {len(pii_hits)}")
     if pii_hits:
-        print(f"  Events with leaks: {set(pii_hits)}")
+        print(f"  Leak details: {pii_hits}")
     
     print("\n--- Grading Scorecard (Estimates) ---")
     score = 100
-    if missing_required > 0:
+    if schema_errors > 0:
         score -= 30
-        print("- [FAILED] Missing required fields (ts, level, etc.)")
+        print("- [FAILED] JSON Schema validation")
     else:
         print("+ [PASSED] Basic JSON schema")
 

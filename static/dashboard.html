@@ -140,7 +140,7 @@
         <div class="panel-head"><h2>Traffic</h2><span class="unit">requests</span></div>
         <div class="value"><span id="traffic">0</span> <small>completed</small></div>
         <canvas id="trafficChart"></canvas>
-        <div class="threshold">Live process total · 1 hour view</div>
+        <div class="threshold">Successful requests in the rolling 1-hour window</div>
       </article>
 
       <article class="panel" style="--accent: var(--red)">
@@ -152,10 +152,10 @@
       </article>
 
       <article class="panel" style="--accent: var(--amber)">
-        <div class="panel-head"><h2>Cost over time</h2><span class="unit">USD</span></div>
+        <div class="panel-head"><h2>Daily cost budget</h2><span class="unit">USD</span></div>
         <div class="value">$<span id="cost">0.0000</span></div>
         <canvas id="costChart"></canvas>
-        <div class="threshold">Daily budget threshold: $2.50</div>
+        <div class="threshold">Rolling 24-hour cost · budget threshold: $2.50</div>
       </article>
 
       <article class="panel" style="--accent: #a98bff">
@@ -231,7 +231,7 @@
         $("traffic").textContent = format(data.traffic);
         $("errorRate").textContent = Number(data.error_rate_pct).toFixed(2);
         $("errorCount").textContent = `${format(data.errors_total)} errors`;
-        $("cost").textContent = Number(data.total_cost_usd).toFixed(4);
+        $("cost").textContent = Number(data.daily_cost_usd).toFixed(4);
         $("tokensIn").textContent = format(data.tokens_in_total);
         $("tokensOut").textContent = format(data.tokens_out_total);
         $("quality").textContent = Number(data.quality_avg).toFixed(2);
@@ -254,7 +254,7 @@
 
         push("latency", data.latency_p95);
         push("traffic", data.traffic);
-        push("cost", data.total_cost_usd);
+        push("cost", data.daily_cost_usd);
         draw("latencyChart", history.latency, "#43d9d0", 3000);
         draw("trafficChart", history.traffic, "#6fe3a1");
         draw("costChart", history.cost, "#ffbf69", 2.5);

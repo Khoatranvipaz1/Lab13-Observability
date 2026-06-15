@@ -9,8 +9,12 @@ TRACING_CONFIGURED = bool(
 
 
 def _noop_observe(*args: Any, **kwargs: Any):
+    if args and callable(args[0]) and len(args) == 1:
+        return args[0]
+
     def decorator(func):
         return func
+
     return decorator
 
 

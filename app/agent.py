@@ -6,7 +6,7 @@ from dataclasses import dataclass
 from . import metrics
 from .mock_llm import FakeLLM
 from .mock_rag import retrieve
-from .pii import hash_user_id, summarize_text
+from .pii import hash_user_id, scrub_text, summarize_text
 from .tracing import langfuse_context, observe
 
 
@@ -25,7 +25,7 @@ class LabAgent:
         self.model = model
         self.llm = FakeLLM(model=model)
 
-    @observe()
+    @observe(capture_input=False, capture_output=False)
     def run(self, user_id: str, feature: str, session_id: str, message: str) -> AgentResult:
         started = time.perf_counter()
         docs = retrieve(message)
@@ -37,11 +37,15 @@ class LabAgent:
 
         langfuse_context.update_current_trace(
             user_id=hash_user_id(user_id),
-            session_id=session_id,
-            tags=["lab", feature, self.model],
+            session_id=hash_user_id(session_id),
+            tags=["lab", scrub_text(feature), self.model],
         )
         langfuse_context.update_current_observation(
-            metadata={"doc_count": len(docs), "query_preview": summarize_text(message)},
+            metadata={
+                "doc_count": len(docs),
+                "query_preview": summarize_text(message),
+                "answer_preview": summarize_text(response.text),
+            },
             usage_details={"input": response.usage.input_tokens, "output": response.usage.output_tokens},
         )
 

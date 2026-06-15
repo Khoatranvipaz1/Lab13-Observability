@@ -1,5 +1,9 @@
 # Alert Rules and Runbooks
 
+Local verification endpoint: `GET /alerts/status`. It evaluates current
+rolling metrics immediately for lab/demo use. The `for` durations below are
+production alert-manager requirements.
+
 ## 1. High latency P95
 - Severity: P2
 - Trigger: `latency_p95_ms > 5000 for 30m`

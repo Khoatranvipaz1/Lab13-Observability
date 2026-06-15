@@ -6,12 +6,14 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException, Request
+from fastapi import Header
 from fastapi.responses import FileResponse, JSONResponse
 from structlog.contextvars import bind_contextvars, unbind_contextvars
 
 load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 from .agent import LabAgent
+from .alerts import evaluate_alerts
 from .incidents import disable, enable, status
 from .logging_config import configure_logging, get_logger
 from .metrics import record_error, snapshot
@@ -55,6 +57,26 @@ async def dashboard() -> FileResponse:
 @app.get("/metrics")
 async def metrics() -> dict:
     return snapshot()
+
+
+@app.get("/alerts/status")
+async def alert_status() -> dict:
+    current = snapshot()
+    alerts = evaluate_alerts(current)
+    return {
+        "active_count": sum(alert["active"] for alert in alerts),
+        "alerts": alerts,
+    }
+
+
+def _authorize_incident(request: Request, admin_token: str | None) -> None:
+    configured = os.getenv("INCIDENT_ADMIN_TOKEN")
+    if os.getenv("APP_ENV", "dev") != "dev":
+        raise HTTPException(status_code=403, detail="Incident controls are disabled")
+    if request.client and request.client.host not in {"127.0.0.1", "::1", "testclient"}:
+        raise HTTPException(status_code=403, detail="Incident controls are local-only")
+    if not configured or admin_token != configured:
+        raise HTTPException(status_code=401, detail="Invalid incident admin token")
 
 
 @app.post("/chat", response_model=ChatResponse)
@@ -112,7 +134,12 @@ async def chat(request: Request, body: ChatRequest) -> ChatResponse:
 
 
 @app.post("/incidents/{name}/enable")
-async def enable_incident(name: str) -> JSONResponse:
+async def enable_incident(
+    name: str,
+    request: Request,
+    x_admin_token: str | None = Header(default=None),
+) -> JSONResponse:
+    _authorize_incident(request, x_admin_token)
     try:
         enable(name)
         log.warning(
@@ -128,7 +155,12 @@ async def enable_incident(name: str) -> JSONResponse:
 
 
 @app.post("/incidents/{name}/disable")
-async def disable_incident(name: str) -> JSONResponse:
+async def disable_incident(
+    name: str,
+    request: Request,
+    x_admin_token: str | None = Header(default=None),
+) -> JSONResponse:
+    _authorize_incident(request, x_admin_token)
     try:
         disable(name)
         log.warning(

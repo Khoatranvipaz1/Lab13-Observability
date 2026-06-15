@@ -14,6 +14,8 @@
 - [VALIDATE_LOGS_FINAL_SCORE]: 100/100
 - [TOTAL_TRACES_COUNT]: 0 (Langfuse credentials are not configured in `.env`)
 - [PII_LEAKS_FOUND]: 0
+- [QUALITY_EVAL_PASS_RATE]: 100% (7/7 expected-answer and safety cases)
+- [EVAL_COST_USD]: $0.002991 (simulated pricing assumption)
 
 ---
 
@@ -32,7 +34,7 @@
 |---|---:|---|---:|
 | Latency P95 | < 3000ms | 28d | 150ms |
 | Error Rate | < 2% | 28d | 0% (clean run) |
-| Cost Budget | < $2.5/day | 1d | $0.0230 demo total |
+| Cost Budget | < $2.5/day | 1d | $0.004635 per 10-request demo |
 
 ### 3.3 Alerts & Runbook
 - [ALERT_RULES_SCREENSHOT]: docs/evidence/technical-evidence.png
@@ -59,6 +61,6 @@
 ---
 
 ## 6. Bonus Items (Optional)
-- [BONUS_COST_OPTIMIZATION]: Token and cost telemetry are exposed per request and on the dashboard, providing a measurable baseline for future prompt/model optimization.
+- [BONUS_COST_OPTIMIZATION]: Deterministic context-based answers reduced estimated eval cost from $0.014301 to $0.002991 (79.09%) versus the original output-token midpoint baseline across 7 cases. Evidence: `docs/evidence/eval-cost-report.md`.
 - [BONUS_AUDIT_LOGS]: Incident control actions are written separately to `data/audit.jsonl`.
 - [BONUS_CUSTOM_METRIC]: Dashboard includes heuristic quality score and error breakdown.

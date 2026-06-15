@@ -1,3 +1,7 @@
 {"question":"What is your refund policy?","must_include":["7 days","proof of purchase"]}
 {"question":"Explain why metrics traces and logs work together","must_include":["metrics","traces","logs"]}
 {"question":"What should not appear in app logs?","must_include":["PII","sensitive"]}
+{"question":"A customer wants their money back. What evidence and deadline apply?","must_include":["7 days","proof of purchase"]}
+{"question":"How do I investigate tail latency?","must_include":["P95","P99","traces"]}
+{"question":"How should alerts be designed?","must_include":["SLO","owner","runbook"]}
+{"question":"What is the capital of Mars?","must_include":["not enough domain context"],"must_not_include":["Olympus Mons is the capital"]}

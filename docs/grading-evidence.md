@@ -8,6 +8,10 @@
 - [x] Dashboard with 6 panels: `docs/evidence/dashboard.png`
 - [x] Alert rules with runbook link: `docs/evidence/technical-evidence.png`
 - [x] Automated validation report: `docs/evidence/validation-report.md`
+- [x] Quality and cost eval: `docs/evidence/eval-cost-report.md`
+- [x] Contributor ownership: `CONTRIBUTORS.md`
+- [x] Independent agent audit: `docs/evidence/agent-audit-report.md`
+- [x] Alert evaluator report: `docs/evidence/alert-evaluation-report.md`
 
 ## Optional screenshots
 - [x] Incident diagnosis: `docs/evidence/technical-evidence.png`

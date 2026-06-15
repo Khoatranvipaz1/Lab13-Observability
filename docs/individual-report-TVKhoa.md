@@ -8,7 +8,11 @@
   [29fe1ae](https://github.com/Khoatranvipaz1/Lab13-Observability/commit/29fe1ae05177c64c3b0fb4ffb8caf6f9e4538fda)
 - Repository: [Lab13-Observability](https://github.com/Khoatranvipaz1/Lab13-Observability)
 - Validation result: `100/100`
-- Automated tests: `6 passed`
+- Automated tests: `14 passed`
+- Expected-answer and safety eval: `7/7 passed` (`100%`)
+- Evaluated simulated cost: `$0.002991`
+- Estimated starter baseline cost: `$0.014301`
+- Estimated cost reduction: `79.09%`
 
 ## Work Completed
 
@@ -68,6 +72,27 @@ The metrics snapshot exposes:
 
 The dashboard at `/dashboard` contains exactly six main panels, uses a one-hour
 view, refreshes every 20 seconds, displays units, and shows SLO thresholds.
+
+### Quality and Cost Evaluation
+
+I added a reproducible evaluation against `data/expected_answers.jsonl`.
+The evaluator checks required answer phrases rather than relying only on the
+application's heuristic quality score.
+
+Results:
+
+- 7/7 cases passed
+- 100% pass rate
+- 217 simulated input tokens
+- 156 simulated output tokens
+- $0.002991 evaluated cost
+- $0.014301 estimated starter cost
+- 79.09% estimated cost reduction
+
+The estimate uses $3 per million input tokens and $15 per million output tokens.
+The starter comparison uses 130 output tokens, the midpoint of its original
+random 80-180 range. This is a deterministic local estimate, not a provider
+invoice.
 
 ### Tracing
 
@@ -142,6 +167,8 @@ plus failed attempts. Error rate is:
 - Audit log: `data/audit.jsonl`
 - Tests: `tests/test_app.py`, `tests/test_pii.py`, `tests/test_metrics.py`
 - Validator: `scripts/validate_logs.py`
+- Quality and cost eval: `docs/evidence/eval-cost-report.md`
+- Contributor ownership: `CONTRIBUTORS.md`
 
 ## Remaining Group Work
 
